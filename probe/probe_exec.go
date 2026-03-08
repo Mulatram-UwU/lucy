@@ -27,9 +27,10 @@ const noteSuspectPrePackagedServer = "This is likely a pre-packaged server. Ther
 const multiThreadThreshold = 10
 
 // annotateTopology populates exec.Topology by looking up the platform in the
-// runtime registry. If no matching entry exists, Topology is left nil.
+// runtime registry. If the detector already set a Topology, it is kept as-is.
+// If no matching entry exists, Topology is left nil.
 func annotateTopology(exec *types.ExecutableInfo) {
-	if exec == nil {
+	if exec == nil || exec.Topology != nil {
 		return
 	}
 	entry, ok := LookupByPlatform(exec.ModLoader)
