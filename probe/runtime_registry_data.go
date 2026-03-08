@@ -11,6 +11,7 @@ const (
 	RuntimeNodePaper      types.RuntimeNodeID = "paper"
 	RuntimeNodeSpigot     types.RuntimeNodeID = "spigot"
 	RuntimeNodeBukkit     types.RuntimeNodeID = "bukkit"
+	RuntimeNodeFolia      types.RuntimeNodeID = "folia"
 	RuntimeNodeArclight   types.RuntimeNodeID = "arclight"
 	RuntimeNodeYouer      types.RuntimeNodeID = "youer"
 	RuntimeNodeVelocity   types.RuntimeNodeID = "velocity"
@@ -79,6 +80,15 @@ var defaultRegistryEntries = []RegistryEntry{
 		NodeID:           RuntimeNodeBukkit,
 		Role:             types.RuntimeRolePluginCore,
 		IdentityPlatform: types.PlatformAny,
+		Capabilities: []types.RuntimeCapability{
+			types.CapabilityBukkitPlugins,
+		},
+	},
+	{
+		NodeID:           RuntimeNodeFolia,
+		Role:             types.RuntimeRolePluginCore,
+		IdentityPlatform: types.PlatformAny,
+		RiskLevel:        types.RiskMedium,
 		Capabilities: []types.RuntimeCapability{
 			types.CapabilityBukkitPlugins,
 		},
