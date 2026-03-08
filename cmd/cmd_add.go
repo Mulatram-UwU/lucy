@@ -31,6 +31,7 @@ var subcmdAdd = &cli.Command{
 		actionAdd,
 		decoratorGlobalFlags,
 		decoratorHelpAndExitOnNoArg,
+		decoratorLogAndExitOnError,
 	),
 }
 

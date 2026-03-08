@@ -14,9 +14,6 @@ import (
 // flag actions.
 func decoratorBaseCommandFlags(f cli.ActionFunc) cli.ActionFunc {
 	return func(ctx context.Context, cmd *cli.Command) error {
-		if cmd.Bool(flagNoStyleName) {
-			tools.TurnOffStyles()
-		}
 		if cmd.Bool(flagLogFileName) {
 			println("Log file at", logger.LogFile.Name())
 		}

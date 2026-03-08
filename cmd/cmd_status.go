@@ -18,6 +18,7 @@ var subcmdStatus = &cli.Command{
 	Action: tools.Decorate(
 		actionStatus,
 		decoratorGlobalFlags,
+		decoratorLogAndExitOnError,
 	),
 	Flags: []cli.Flag{
 		flagJsonOutput,
