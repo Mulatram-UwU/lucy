@@ -37,7 +37,7 @@ func Install(id types.PackageId, source types.Source) error {
 	}
 
 	serverInfo := probe.ServerInfo()
-	serverPlatform := serverInfo.Executable.ModLoader
+	serverPlatform := serverInfo.Executable.DerivedModLoader()
 	hasMcdr := serverInfo.Environments.Mcdr != nil
 
 	providers, err := routing.ResolveProviders(serverPlatform, source)
@@ -105,7 +105,7 @@ func Install(id types.PackageId, source types.Source) error {
 
 func installPlatform(id types.PackageId) error {
 	serverInfo := probe.ServerInfo()
-	serverPlatform := serverInfo.Executable.ModLoader
+	serverPlatform := serverInfo.Executable.DerivedModLoader()
 	hasMcdr := serverInfo.Environments.Mcdr != nil
 
 	err := id.IsValidIdentityPackage()
@@ -159,7 +159,6 @@ func installPlatform(id types.PackageId) error {
 func ensureServerPlatformMatch(id types.PackageId) error {
 	platform := id.Platform
 	serverInfo := probe.ServerInfo()
-	serverPlatform := serverInfo.Executable.ModLoader
 
 	switch platform {
 	case types.PlatformAny:
@@ -169,32 +168,50 @@ func ensureServerPlatformMatch(id types.PackageId) error {
 			return errors.New("mcdr not found")
 		}
 		return nil
-	case types.PlatformForge:
-		if !serverInfo.Executable.IsValid() {
-			return errors.New("no valid executable found, `lucy add` requires a server in current directory")
-		}
-		if serverPlatform != types.PlatformForge {
-			return errors.New("forge server not found")
-		}
-		return nil
-	case types.PlatformFabric:
-		if !serverInfo.Executable.IsValid() {
-			return errors.New("no valid executable found, `lucy add` requires a server in current directory")
-		}
-		if serverPlatform != types.PlatformFabric {
-			return errors.New("fabric server not found")
-		}
-		return nil
-	case types.PlatformNeoforge:
-		if !serverInfo.Executable.IsValid() {
-			return errors.New("no valid executable found, `lucy add` requires a server in current directory")
-		}
-		if serverPlatform != types.PlatformNeoforge {
-			return errors.New("neoforge server not found")
-		}
-		return nil
 	default:
-		return errors.New("unsupported platform")
+		if !serverInfo.Executable.IsValid() {
+			return errors.New("no valid executable found, `lucy add` requires a server in current directory")
+		}
+
+		requiredCapability := probe.CapabilityForPlatform(platform)
+		if requiredCapability == "" {
+			return fmt.Errorf("unsupported platform: %s", platform)
+		}
+
+		result := probe.EvaluateCompatibility(serverInfo.Executable.Topology, requiredCapability)
+		switch result.Verdict {
+		case types.CompatCompatible:
+			return nil
+		case types.CompatDegraded:
+			logger.Warn(
+				fmt.Errorf(
+					"compatibility warning: %s (reason: %s)",
+					result.Detail,
+					result.Reason,
+				),
+			)
+			return nil
+		case types.CompatUnresolved:
+			serverPlatform := serverInfo.Executable.ModLoader
+			logger.Warn(
+				fmt.Errorf(
+					"topology unresolved, falling back to platform check (reason: %s)",
+					result.Reason,
+				),
+			)
+			if serverPlatform != platform {
+				return fmt.Errorf(
+					"%s server not found (reason: %s, fallback: modloader_mismatch)",
+					platform.Title(),
+					result.Reason,
+				)
+			}
+			return nil
+		case types.CompatIncompatible:
+			return fmt.Errorf("%s server not found (reason: %s)", platform.Title(), result.Reason)
+		default:
+			return fmt.Errorf("%s server not found (reason: %s)", platform.Title(), result.Reason)
+		}
 	}
 }
 
