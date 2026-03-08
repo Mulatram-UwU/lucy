@@ -45,7 +45,7 @@ func generateStatusOutput(
 ) (output *tui.Data) {
 	longOutput := cmd.Bool("long")
 	noStyle := cmd.Bool("no-style")
-	serverPlatform := data.Executable.ModLoader
+	serverPlatform := data.Executable.DerivedModLoader()
 	hasMcdr := data.Environments.Mcdr != nil
 	hasLucy := data.Environments.Lucy != nil
 
@@ -126,17 +126,36 @@ func generateStatusOutput(
 
 	// Show modding platform if detected, even if no mods found, to differentiate
 	// between modded and vanilla servers
-	if data.Executable.ModLoader != types.PlatformMinecraft {
+	if serverPlatform != types.PlatformMinecraft {
 		output.Fields = append(
 			output.Fields, &tui.FieldAnnotatedShortText{
 				Title:      "Platform",
-				Text:       data.Executable.ModLoader.Title(),
+				Text:       serverPlatform.Title(),
 				Annotation: data.Executable.LoaderVersion.String(),
 			},
 		)
 	}
 
-	showMods := data.Executable.ModLoader.IsModding()
+	// If topology is resolved and has meaningful risk, show it
+	if data.Executable.Topology != nil && data.Executable.Topology.Resolved() {
+		primaryNode, ok := data.Executable.Topology.PrimaryNodeData()
+		if ok && primaryNode.RiskLevel > types.RiskNone {
+			riskLabel := topologyRiskLabel(primaryNode.RiskLevel, noStyle)
+			output.Fields = append(output.Fields, &tui.FieldShortText{
+				Title: "Risk",
+				Text:  riskLabel,
+			})
+		}
+	}
+
+	showMods := false
+	if data.Executable.Topology != nil && data.Executable.Topology.Resolved() {
+		showMods = data.Executable.Topology.HasCapability(types.CapabilityFabricMods) ||
+			data.Executable.Topology.HasCapability(types.CapabilityForgeMods) ||
+			data.Executable.Topology.HasCapability(types.CapabilityNeoforgeMods)
+	} else {
+		showMods = data.Executable.ModLoader.IsModding()
+	}
 
 	// Collect mod/plugin names and paths for later use. This is to avoid
 	// traversing the package list multiple times, which can be costly when
@@ -240,4 +259,19 @@ func generateStatusOutput(
 	}
 
 	return output
+}
+
+func topologyRiskLabel(level types.RuntimeRiskLevel, noStyle bool) string {
+	switch level {
+	case types.RiskLow:
+		return "Low"
+	case types.RiskMedium:
+		return "Medium" + tools.Ternary(noStyle, "", " ⚠")
+	case types.RiskHigh:
+		return "High" + tools.Ternary(noStyle, "", " ⚠⚠")
+	case types.RiskCritical:
+		return "Critical" + tools.Ternary(noStyle, "", " ✗")
+	default:
+		return "None"
+	}
 }

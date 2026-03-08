@@ -195,13 +195,14 @@ func executableLabel(executable *types.ExecutableInfo) string {
 
 func executableAnnotation(executable *types.ExecutableInfo) string {
 	gameVersion := executable.GameVersion.String()
-	if executable.ModLoader == types.PlatformMinecraft {
+	derivedPlatform := executable.DerivedModLoader()
+	if derivedPlatform == types.PlatformMinecraft {
 		return fmt.Sprintf("(Minecraft %s, Vanilla)", gameVersion)
 	}
 	return fmt.Sprintf(
 		"(Minecraft %s, %s %s)",
 		gameVersion,
-		executable.ModLoader.Title(),
+		derivedPlatform.Title(),
 		executable.LoaderVersion.String(),
 	)
 }
