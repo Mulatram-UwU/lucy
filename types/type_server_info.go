@@ -25,6 +25,7 @@ type ExecutableInfo struct {
 	LoaderVersion RawVersion       `json:"loader_version"`
 	BootCommand   *exec.Cmd        `json:"-"`
 	Topology      *RuntimeTopology `json:"topology,omitempty"`
+	BridgeHints   []string         `json:"bridge_hints,omitempty"`
 }
 
 func (e *ExecutableInfo) IsValid() bool {

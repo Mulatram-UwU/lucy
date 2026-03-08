@@ -1,6 +1,10 @@
 package probe
 
-import "github.com/mclucy/lucy/types"
+import (
+	"sort"
+
+	"github.com/mclucy/lucy/types"
+)
 
 type RegistryEntry struct {
 	NodeID           types.RuntimeNodeID
@@ -121,6 +125,20 @@ func BuildTopologyFromEntry(entry RegistryEntry) *types.RuntimeTopology {
 		})
 		seenNode[policyEdge.TargetNodeID] = struct{}{}
 	}
+
+	sort.Slice(nodes, func(i, j int) bool {
+		return string(nodes[i].ID) < string(nodes[j].ID)
+	})
+
+	sort.Slice(edges, func(i, j int) bool {
+		if edges[i].From != edges[j].From {
+			return string(edges[i].From) < string(edges[j].From)
+		}
+		if edges[i].To != edges[j].To {
+			return string(edges[i].To) < string(edges[j].To)
+		}
+		return string(edges[i].Kind) < string(edges[j].Kind)
+	})
 
 	return &types.RuntimeTopology{
 		PrimaryNode: entry.NodeID,

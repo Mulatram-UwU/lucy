@@ -38,6 +38,7 @@ func annotateTopology(exec *types.ExecutableInfo) {
 		return
 	}
 	exec.Topology = BuildTopologyFromEntry(entry)
+	NormalizeTopology(exec.Topology)
 }
 
 // getExecutableInfo uses the new detector-based architecture to find server executables

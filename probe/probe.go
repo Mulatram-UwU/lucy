@@ -175,6 +175,11 @@ func buildServerInfo() types.ServerInfo {
 
 	wg.Wait()
 	EnrichTopologyFromPackages(serverInfo.Executable, serverInfo.Packages)
+
+	if serverInfo.Executable != nil && serverInfo.Executable.Topology == nil {
+		serverInfo.Executable.Topology = &types.RuntimeTopology{}
+	}
+
 	return serverInfo
 }
 
