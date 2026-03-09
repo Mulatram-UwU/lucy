@@ -33,6 +33,10 @@ var subcmdInfo = &cli.Command{
 		decoratorLogAndExitOnError,
 	),
 	ShellComplete: func(_ context.Context, cmd *cli.Command) {
+		if CompleteFlagNamesIfRequested(cmd) {
+			return
+		}
+
 		osArgs := os.Args
 		if n := len(osArgs); n >= 2 {
 			prevArg := osArgs[n-2]

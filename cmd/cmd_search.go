@@ -57,6 +57,10 @@ var subcmdSearch = &cli.Command{
 		decoratorLogAndExitOnError,
 	),
 	ShellComplete: func(ctx context.Context, cmd *cli.Command) {
+		if CompleteFlagNamesIfRequested(cmd) {
+			return
+		}
+
 		if len(os.Args) < 2 {
 			return
 		}

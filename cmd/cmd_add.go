@@ -34,6 +34,10 @@ var subcmdAdd = &cli.Command{
 		decoratorLogAndExitOnError,
 	),
 	ShellComplete: func(_ context.Context, cmd *cli.Command) {
+		if CompleteFlagNamesIfRequested(cmd) {
+			return
+		}
+
 		token := ""
 		if cmd.NArg() > 0 {
 			token = cmd.Args().First()
