@@ -58,12 +58,33 @@ func decoratorHelpAndExitOnNoArg(f cli.ActionFunc) cli.ActionFunc {
 	}
 }
 
+// hasAnyFlagSet returns true if any flag for this command has a non-zero value.
+// It attempts to infer whether a flag was set by checking common flag types
+// (bool, string, int) via their zero values.
+func hasAnyFlagSet(cmd *cli.Command) bool {
+	for _, name := range cmd.FlagNames() {
+		// bool flags: default is typically false; true implies set
+		if cmd.Bool(name) {
+			return true
+		}
+		// string flags: non-empty implies set
+		if cmd.String(name) != "" {
+			return true
+		}
+		// int flags: non-zero implies set
+		if cmd.Int(name) != 0 {
+			return true
+		}
+	}
+	return false
+}
+
 // decoratorHelpAndExitOnNoFlag is similar to decoratorHelpAndExitOnNoArg, but
 // it checks for flags instead of args. This is useful for commands that
 // require at least one flag.
 func decoratorHelpAndExitOnNoFlag(f cli.ActionFunc) cli.ActionFunc {
 	return func(ctx context.Context, cmd *cli.Command) error {
-		if len(cmd.LocalFlagNames()) == 0 {
+		if !hasAnyFlagSet(cmd) {
 			cli.ShowSubcommandHelpAndExit(cmd, 0)
 		}
 		return f(ctx, cmd)
