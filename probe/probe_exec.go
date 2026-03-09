@@ -33,7 +33,7 @@ func annotateTopology(exec *types.ExecutableInfo) {
 	if exec == nil || exec.Topology != nil {
 		return
 	}
-	entry, ok := LookupByPlatform(exec.ModLoader)
+	entry, ok := LookupByPlatform(exec.PrimaryPlatform)
 	if !ok {
 		return
 	}
@@ -203,7 +203,7 @@ func executableAnnotation(executable *types.ExecutableInfo) string {
 		"(Minecraft %s, %s %s)",
 		gameVersion,
 		derivedPlatform.Title(),
-		executable.LoaderVersion.String(),
+		executable.PrimaryPlatformVersion.String(),
 	)
 }
 

@@ -132,7 +132,7 @@ func generateStatusOutput(
 			output.Fields, &tui.FieldAnnotatedShortText{
 				Title:      "Platform",
 				Text:       serverPlatform.Title(),
-				Annotation: data.Executable.LoaderVersion.String(),
+				Annotation: data.Executable.PrimaryPlatformVersion.String(),
 			},
 		)
 	}
@@ -142,10 +142,12 @@ func generateStatusOutput(
 		primaryNode, ok := data.Executable.Topology.PrimaryNodeData()
 		if ok && primaryNode.RiskLevel > types.RiskNone {
 			riskLabel := topologyRiskLabel(primaryNode.RiskLevel, noStyle)
-			output.Fields = append(output.Fields, &tui.FieldShortText{
-				Title: "Risk",
-				Text:  riskLabel,
-			})
+			output.Fields = append(
+				output.Fields, &tui.FieldShortText{
+					Title: "Risk",
+					Text:  riskLabel,
+				},
+			)
 		}
 	}
 
@@ -157,8 +159,8 @@ func generateStatusOutput(
 	} else {
 		// Display path: unresolved topology falls back to mod-loader identity to
 		// avoid noisy status warnings while keeping output deterministic.
-		logger.Warn(fmt.Errorf("status-display: topology unresolved, falling back to ModLoader identity for mod visibility"))
-		showMods = data.Executable.ModLoader.IsModding()
+		logger.Warn(fmt.Errorf("status-display: topology unresolved, falling back to PrimaryPlatform identity for mod visibility"))
+		showMods = data.Executable.PrimaryPlatform.IsModding()
 	}
 
 	// Collect mod/plugin names and paths for later use. This is to avoid

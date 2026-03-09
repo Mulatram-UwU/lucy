@@ -40,7 +40,11 @@ func Install(id types.PackageId, source types.Source) error {
 	serverPlatform := serverInfo.Executable.DerivedModLoader()
 	hasMcdr := serverInfo.Environments.Mcdr != nil
 
-	providers, err := routing.ResolveProvidersByTopology(serverInfo.Executable.Topology, serverPlatform, source)
+	providers, err := routing.ResolveProvidersByTopology(
+		serverInfo.Executable.Topology,
+		serverPlatform,
+		source,
+	)
 	if err != nil {
 		return err
 	}
@@ -205,9 +209,12 @@ func ensureServerPlatformMatch(id types.PackageId) error {
 				result.RiskLevel,
 			)
 		case types.CompatUnresolved:
-			serverPlatform := serverInfo.Executable.ModLoader
+			serverPlatform := serverInfo.Executable.PrimaryPlatform
 			logger.Warn(
-				fmt.Errorf("topology unresolved for %s, falling back to legacy compatibility check", id.Platform),
+				fmt.Errorf(
+					"topology unresolved for %s, falling back to legacy compatibility check",
+					id.Platform,
+				),
 			)
 
 			switch platform {

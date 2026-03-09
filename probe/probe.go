@@ -206,10 +206,10 @@ func buildModPaths() (paths []string) {
 		}
 	} else {
 		// Legacy fallback
-		logger.Warn(fmt.Errorf("mod-path: topology unresolved, falling back to legacy ModLoader check"))
-		if exec.ModLoader == types.PlatformFabric ||
-			exec.ModLoader == types.PlatformForge ||
-			exec.ModLoader == types.PlatformNeoforge {
+		logger.Warn(fmt.Errorf("mod-path: topology unresolved, falling back to legacy PrimaryPlatform check"))
+		if exec.PrimaryPlatform == types.PlatformFabric ||
+			exec.PrimaryPlatform == types.PlatformForge ||
+			exec.PrimaryPlatform == types.PlatformNeoforge {
 			paths = append(paths, path.Join(workPath(), "mods"))
 		}
 	}
