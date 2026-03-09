@@ -49,10 +49,7 @@ var subcmdInfo = &cli.Command{
 		if cmd.NArg() > 0 {
 			token = cmd.Args().First()
 		}
-		_, _, _, seg := ParseCompletionToken(token)
-		if seg == "platform" || seg == "" {
-			PrintCandidates(FilterByPrefix(StaticPlatformCandidates(), token))
-		}
+		CompletePackageIDSuggestions(context.Background(), cmd, token)
 	},
 }
 

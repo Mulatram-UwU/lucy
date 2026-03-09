@@ -86,7 +86,7 @@ var subcmdSearch = &cli.Command{
 		if cmd.NArg() > 0 {
 			prefix = cmd.Args().First()
 		}
-		PrintCandidates(FilterByPrefix(StaticPlatformCandidates(), prefix))
+		CompletePackageIDSuggestions(ctx, cmd, prefix)
 	},
 }
 
