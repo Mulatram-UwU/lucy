@@ -10,7 +10,7 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-// decoratorBaseCommandFlags provides some the base command `lucy` some necessary
+// decoratorBaseCommandFlags provides the base command `lucy` some necessary
 // flag actions.
 func decoratorBaseCommandFlags(f cli.ActionFunc) cli.ActionFunc {
 	return func(ctx context.Context, cmd *cli.Command) error {
@@ -24,7 +24,7 @@ func decoratorBaseCommandFlags(f cli.ActionFunc) cli.ActionFunc {
 	}
 }
 
-// decoratorGlobalFlags is a high-order function that appends global flag actions
+// decoratorGlobalFlags is a higher-order function that appends global flag actions
 // to the action function.
 func decoratorGlobalFlags(f cli.ActionFunc) cli.ActionFunc {
 	return func(ctx context.Context, cmd *cli.Command) error {
@@ -44,7 +44,7 @@ func decoratorGlobalFlags(f cli.ActionFunc) cli.ActionFunc {
 	}
 }
 
-// decoratorHelpAndExitOnNoArg is a high-order function that takes a cli.ActionFunc and
+// decoratorHelpAndExitOnNoArg is a higher-order function that takes a cli.ActionFunc and
 // returns a cli.ActionFunc that prints help and exit when there's no args specified.
 //
 // This function is not necessarily applicable to every action function, as some
