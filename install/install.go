@@ -146,8 +146,10 @@ func installPlatform(id types.PackageId) error {
 			return errors.New("unknown mod loader, cannot infer fabric bootstrap artifact")
 		case types.PlatformFabric:
 			return errors.New("fabric server already detected, installation aborted")
-		case types.PlatformForge, types.PlatformNeoforge:
-			return errors.New("forge server detected, cannot install fabric bootstrap")
+		case types.PlatformForge:
+			return errors.New("Forge server detected, cannot install Fabric bootstrap")
+		case types.PlatformNeoforge:
+			return errors.New("NeoForge server detected, cannot install Fabric bootstrap")
 		case types.PlatformVanilla:
 			override, deleteVanilla := promptOverrideVanillaWithFabric()
 			if !override {
