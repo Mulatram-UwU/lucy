@@ -165,10 +165,12 @@ func installPlatform(id types.PackageId) error {
 		}
 		return installFabric(id)
 	case types.PlatformNeoforge:
-		if serverPlatform != types.PlatformVanilla {
+		switch serverPlatform {
+		case types.PlatformVanilla, types.PlatformNone:
+			return installNeoForge(id)
+		default:
 			return errExistingPlatform()
 		}
-		return installNeoForge(id)
 	case types.PlatformMCDR:
 		if hasMcdr {
 			return errors.New("mcdr already installed")

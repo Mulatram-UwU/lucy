@@ -23,6 +23,22 @@ func installNeoForgeMod(p types.Package) error {
 	return installModLoaderPackage(p, types.PlatformNeoforge)
 }
 
+// guardServerTopologyForNeoForgePlatform returns an error if an incompatible
+// mod loader is already installed.
+func guardServerTopologyForNeoForgePlatform() error {
+	serverInfo := probe.ServerInfo()
+	serverPlatform := serverInfo.Executable.DerivedModLoader()
+
+	switch serverPlatform {
+	case types.PlatformFabric, types.PlatformForge, types.PlatformNeoforge:
+		return fmt.Errorf(
+			"found an existing server platform %s, installation of NeoForge aborted",
+			serverPlatform.Title(),
+		)
+	}
+	return nil
+}
+
 var (
 	neoForgeMavenBaseURL = "https://maven.neoforged.net/releases/net/neoforged/neoforge"
 	neoForgeMetadataURL  = "https://maven.neoforged.net/releases/net/neoforged/neoforge/maven-metadata.xml"
@@ -38,6 +54,10 @@ type neoForgeMavenMetadata struct {
 }
 
 func installNeoForge(id types.PackageId) error {
+	if err := guardServerTopologyForNeoForgePlatform(); err != nil {
+		return err
+	}
+
 	serverInfo := probe.ServerInfo()
 	if serverInfo.WorkPath == "" {
 		return errors.New("server working directory not found")
