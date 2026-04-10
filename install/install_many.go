@@ -207,6 +207,7 @@ func resolveBatchPackages(
 		pkg    types.Package
 		failed bool
 		id     types.PackageId
+		errMsg string
 	}
 
 	slots := make([]slot, len(ids))
@@ -218,11 +219,15 @@ func resolveBatchPackages(
 			defer wg.Done()
 			fetches, errs := routing.FetchMany(providers, id)
 			if len(fetches) == 0 {
-				// Log provider errors as warnings (same as Install())
+				reasons := make([]string, 0, len(errs))
 				for _, provErr := range errs {
-					logger.ReportWarn(fmt.Errorf("search on %s failed: %w", provErr.Source.Title(), provErr.Err))
+					reasons = append(reasons, provErr.Err.Error())
 				}
-				slots[index] = slot{failed: true, id: id}
+				errMsg := strings.Join(reasons, "; ")
+				if errMsg == "" {
+					errMsg = "not found on any provider"
+				}
+				slots[index] = slot{failed: true, id: id, errMsg: errMsg}
 				return
 			}
 			fetch := fetches[0]
@@ -241,7 +246,7 @@ func resolveBatchPackages(
 	failures := make([]string, 0)
 	for _, item := range slots {
 		if item.failed {
-			failures = append(failures, item.id.StringFull())
+			failures = append(failures, fmt.Sprintf("%s (%s)", item.id.StringFull(), item.errMsg))
 		} else {
 			packages = append(packages, item.pkg)
 		}
@@ -249,8 +254,8 @@ func resolveBatchPackages(
 
 	if len(failures) > 0 {
 		return nil, fmt.Errorf(
-			"no candidates found for %s",
-			strings.Join(failures, ", "),
+			"no candidates found:\n  %s",
+			strings.Join(failures, "\n  "),
 		)
 	}
 
