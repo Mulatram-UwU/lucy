@@ -37,10 +37,20 @@ func InstallMany(ids []types.PackageId, source types.Source) error {
 
 	if len(identityIds) > 0 {
 		showBatchPhase("Installing platforms", identityIds)
+		succeeded := make([]string, 0, len(identityIds))
 		for _, id := range identityIds {
 			if err := installPlatform(id); err != nil {
-				return err
+				if len(succeeded) > 0 {
+					return fmt.Errorf(
+						"%s: failed to install %s (already installed: %s)",
+						err,
+						id.StringFull(),
+						strings.Join(succeeded, ", "),
+					)
+				}
+				return fmt.Errorf("failed to install %s: %w", id.StringFull(), err)
 			}
+			succeeded = append(succeeded, id.StringFull())
 		}
 		probe.InvalidateServerInfo()
 	}
@@ -206,8 +216,12 @@ func resolveBatchPackages(
 		wg.Add(1)
 		go func(index int, id types.PackageId) {
 			defer wg.Done()
-			fetches, _ := routing.FetchMany(providers, id)
+			fetches, errs := routing.FetchMany(providers, id)
 			if len(fetches) == 0 {
+				// Log provider errors as warnings (same as Install())
+				for _, provErr := range errs {
+					logger.ReportWarn(fmt.Errorf("search on %s failed: %w", provErr.Source.Title(), provErr.Err))
+				}
 				slots[index] = slot{failed: true, id: id}
 				return
 			}
@@ -269,6 +283,9 @@ func downloadBatchPackages(
 	slots := make([]slot, len(packages))
 	var wg sync.WaitGroup
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	for i, p := range packages {
 		tracker := tuiprogress.NewTracker(p.Id.StringFull())
 
@@ -276,6 +293,12 @@ func downloadBatchPackages(
 		go func(index int, pkg types.Package, tracker *tuiprogress.Tracker) {
 			defer wg.Done()
 			defer tracker.Close()
+
+			// Check if already cancelled by a sibling failure
+			if ctx.Err() != nil {
+				slots[index] = slot{failed: true, err: ctx.Err()}
+				return
+			}
 
 			result, err := util.CachedDownload(
 				pkg.Remote.FileUrl,
@@ -293,6 +316,7 @@ func downloadBatchPackages(
 				},
 			)
 			if err != nil {
+				cancel() // signal other goroutines to abort
 				slots[index] = slot{failed: true, err: err}
 				return
 			}
@@ -300,6 +324,7 @@ func downloadBatchPackages(
 			if result.File != nil {
 				pkg.Local = &types.PackageInstallation{Path: result.File.Name()}
 				if err := result.File.Close(); err != nil {
+					cancel() // signal other goroutines to abort
 					slots[index] = slot{failed: true, err: err}
 					return
 				}
@@ -311,9 +336,9 @@ func downloadBatchPackages(
 
 	wg.Wait()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	_ = tuiprogress.WaitForShutdown(ctx)
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
+	_ = tuiprogress.WaitForShutdown(shutdownCtx)
 
 	downloaded := make([]types.Package, 0, len(packages))
 	failures := make([]string, 0)
