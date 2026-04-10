@@ -193,21 +193,44 @@ func resolveBatchPackages(
 	ids []types.PackageId,
 	providers []upstream.Provider,
 ) ([]types.Package, error) {
+	type slot struct {
+		pkg    types.Package
+		failed bool
+		id     types.PackageId
+	}
+
+	slots := make([]slot, len(ids))
+	var wg sync.WaitGroup
+
+	for i, id := range ids {
+		wg.Add(1)
+		go func(index int, id types.PackageId) {
+			defer wg.Done()
+			fetches, _ := routing.FetchMany(providers, id)
+			if len(fetches) == 0 {
+				slots[index] = slot{failed: true, id: id}
+				return
+			}
+			fetch := fetches[0]
+			slots[index] = slot{
+				pkg: types.Package{
+					Id:     fetch.ResolvedID,
+					Remote: &fetch.Remote,
+				},
+			}
+		}(i, id)
+	}
+
+	wg.Wait()
+
 	packages := make([]types.Package, 0, len(ids))
 	failures := make([]string, 0)
-
-	for _, id := range ids {
-		fetches, _ := routing.FetchMany(providers, id)
-		if len(fetches) == 0 {
-			failures = append(failures, id.StringFull())
-			continue
+	for _, item := range slots {
+		if item.failed {
+			failures = append(failures, item.id.StringFull())
+		} else {
+			packages = append(packages, item.pkg)
 		}
-
-		fetch := fetches[0]
-		packages = append(packages, types.Package{
-			Id:     fetch.ResolvedID,
-			Remote: &fetch.Remote,
-		})
 	}
 
 	if len(failures) > 0 {
@@ -290,9 +313,7 @@ func downloadBatchPackages(
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if err := tuiprogress.WaitForShutdown(ctx); err != nil {
-		return nil, fmt.Errorf("progress shutdown failed: %w", err)
-	}
+	_ = tuiprogress.WaitForShutdown(ctx)
 
 	downloaded := make([]types.Package, 0, len(packages))
 	failures := make([]string, 0)
