@@ -66,3 +66,57 @@ func joinPackageNames(ids []types.PackageId) string {
 	result += "and " + ids[len(ids)-1].StringFull()
 	return result
 }
+
+func showRecursiveResolveStart(roots []types.PackageId) {
+	logger.ShowInfo(fmt.Sprintf("resolving dependencies for %s", joinPackageNames(roots)))
+}
+
+func showRecursiveDownloadStart(count int) {
+	logger.ShowInfo(fmt.Sprintf("downloading %d artifacts", count))
+}
+
+func showRecursiveVerifyStart(count int) {
+	logger.ShowInfo(fmt.Sprintf("verifying %d artifacts locally", count))
+}
+
+func showRecursiveReconcileStart() {
+	logger.ShowInfo("reconciling advisory and verified graphs")
+}
+
+func showRecursiveReconcileDiff(diff ReconcileDiff) {
+	verbals := []string{}
+	if len(diff.Missing) > 0 {
+		verbals = append(verbals, fmt.Sprintf("+%d missing", len(diff.Missing)))
+	}
+	if len(diff.Extra) > 0 {
+		verbals = append(verbals, fmt.Sprintf("-%d extra", len(diff.Extra)))
+	}
+	if len(diff.Tightened) > 0 {
+		verbals = append(verbals, fmt.Sprintf("~%d tightened", len(diff.Tightened)))
+	}
+	logger.ShowInfo("reconcile: " + joinStrings(verbals))
+}
+
+func showRecursiveApplyStart(count int) {
+	logger.ShowInfo(fmt.Sprintf("applying %d changes", count))
+}
+
+func showRecursiveConflict(err error) {
+	logger.ShowInfo(fmt.Sprintf("conflict: %s", err.Error()))
+}
+
+func showRecursiveCompatibleInstalled(id types.PackageId, installed types.Package) {
+	logger.ShowInfo(fmt.Sprintf("[recursive] compatible installed: %s (not auto-selected)", installed.Id.StringFull()))
+}
+
+func joinStrings(strs []string) string {
+	if len(strs) == 0 {
+		return "none"
+	}
+	result := ""
+	for i := 0; i < len(strs)-1; i++ {
+		result += strs[i] + ", "
+	}
+	result += strs[len(strs)-1]
+	return result
+}
