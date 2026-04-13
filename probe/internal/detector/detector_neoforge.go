@@ -3,6 +3,7 @@ package detector
 import (
 	"archive/zip"
 	"bufio"
+	"encoding/json"
 	"io"
 	"os"
 	"strings"
@@ -241,12 +242,79 @@ func (d *neoforgeModDetector) Detect(
 					},
 				}
 
+				// Append JarInJar embedded library dependencies from
+				// META-INF/jarjar/metadata.json if present.
+				// Reference: https://docs.neoforged.net/toolchain/docs/dependencies/jarinjar/
+				embedded := readJarjarEmbedded(zipReader)
+				p.Dependencies.Value = append(p.Dependencies.Value, embedded...)
+
 				packages = append(packages, p)
 			}
 		}
 	}
 
 	return packages, nil
+}
+
+// readJarjarEmbedded reads META-INF/jarjar/metadata.json from a NeoForge mod
+// JAR and returns the bundled library dependencies as Dependency entries with
+// Embedded=true.
+//
+// JarInJar is NeoForge's mechanism for bundling library JARs directly inside a
+// mod JAR so they are available at runtime without being separate files in the
+// mods directory.
+//
+// Reference: https://docs.neoforged.net/toolchain/docs/dependencies/jarinjar/
+func readJarjarEmbedded(zipReader *zip.Reader) []types.Dependency {
+	for _, f := range zipReader.File {
+		if f.Name != "META-INF/jarjar/metadata.json" {
+			continue
+		}
+
+		r, err := f.Open()
+		if err != nil {
+			logger.Warn(err)
+			return nil
+		}
+		defer tools.CloseReader(r, logger.Warn)
+
+		data, err := io.ReadAll(r)
+		if err != nil {
+			logger.Warn(err)
+			return nil
+		}
+
+		var meta externaltype.FileNeoforgeJarjar
+		if err := json.Unmarshal(data, &meta); err != nil {
+			logger.Warn(err)
+			return nil
+		}
+
+		deps := make([]types.Dependency, 0, len(meta.Jars))
+		for _, entry := range meta.Jars {
+			// Construct a synthetic name from group:artifact so it is
+			// human-readable and unique within the package ID space.
+			name := syntax.ToProjectName(entry.Identifier.Group + ":" + entry.Identifier.Artifact)
+
+			dep := types.Dependency{
+				Id: types.PackageId{
+					// JarInJar entries are Maven library artifacts, not mods.
+					// We use PlatformNone to indicate they are not platform
+					// packages but generic Java libraries bundled inside the mod.
+					Platform: types.PlatformNone,
+					Name:     name,
+					// Version is intentionally left empty per Dependency contract;
+					// the constraint below expresses the version requirement.
+				},
+				Constraint: parseModLoaderMavenVersionRange(entry.Version.Range),
+				Mandatory:  true,
+				Embedded:   true,
+			}
+			deps = append(deps, dep)
+		}
+		return deps
+	}
+	return nil
 }
 
 func init() {
