@@ -25,6 +25,22 @@ type CompletionRequest struct {
 }
 
 const shellCompletionTrigger = "--generate-shell-completion"
+const completionDoubleDashSentinel = "__lucy_complete_double_dash__"
+
+// NormalizeCompletionArgs preserves the user's intent when the current token is
+// a literal "--".
+//
+// urfave/cli treats "--" as the end-of-options marker, so a raw invocation like
+// `lucy search -- --generate-shell-completion` never enters shell-completion
+// mode. We replace only that exact shape with an internal sentinel so the
+// completion request survives parsing, then map it back to "--" below.
+func NormalizeCompletionArgs(args []string) []string {
+	normalized := slices.Clone(args)
+	if len(normalized) >= 2 && normalized[len(normalized)-1] == shellCompletionTrigger && normalized[len(normalized)-2] == "--" {
+		normalized[len(normalized)-2] = completionDoubleDashSentinel
+	}
+	return normalized
+}
 
 // PrintCandidates outputs plain completion values, one per line.
 //
@@ -124,6 +140,19 @@ func ParseCompletionRequest(cmd *cli.Command) CompletionRequest {
 	}
 	if len(args) > 1 {
 		request.Previous = args[len(args)-2]
+	}
+
+	// The sentinel means the user was actually typing "--" and wants long-flag
+	// completion, not a real end-of-options terminator.
+	if request.Current == completionDoubleDashSentinel {
+		request.Current = "--"
+		request.CompletingFlagName = true
+		return request
+	}
+
+	if request.Current == "--" {
+		request.CompletingFlagName = true
+		return request
 	}
 
 	if flag, ok := flagByToken(cmd, request.Current); ok && flagTakesValue(flag) {

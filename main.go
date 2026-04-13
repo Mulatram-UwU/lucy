@@ -12,7 +12,10 @@ import (
 
 func main() {
 	defer logger.DumpHistory() // Whether DumpHistory actually does anything depend on the flag.
-	if err := cmd.Cli.Run(context.Background(), os.Args); err != nil {
+	// Keep the literal "--" case alive for completion before urfave/cli sees it.
+	args := cmd.NormalizeCompletionArgs(os.Args)
+	os.Args = args
+	if err := cmd.Cli.Run(context.Background(), args); err != nil {
 		// Error is already reported by decoratorLogAndExitOnError in commands.
 		// Reporting here again would cause duplicate error messages.
 	}
