@@ -158,7 +158,7 @@ func (s provider) ParseAmbiguousId(p types.PackageId) (
 
 	switch p.Version {
 	case types.VersionCompatible:
-		v, err = latestCompatibleVersion(p.Name)
+		v, err = latestCompatibleVersion(p.Name, p.Platform)
 	case types.VersionAny, types.VersionNone, types.VersionLatest:
 		v, err = latestVersion(p.Name)
 	default:
