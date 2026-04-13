@@ -290,7 +290,22 @@ func buildRecursiveApplyPlan(tx *RecursiveTransaction) (ApplyPlan, error) {
 		install = append(install, pkg)
 	}
 
-	return ApplyPlan{Install: install}, nil
+	// Collect extra candidate nodes (advisory-only, not in the verified closure)
+	// that have a downloaded local artifact — they must be removed from disk.
+	remove := make([]types.Package, 0)
+	for _, extraId := range tx.ReconcileDiff.Extra {
+		key := extraId.StringPlatformName()
+		node, ok := tx.CandidateGraph[key]
+		if !ok {
+			continue
+		}
+		if node.Package.Local == nil || node.Package.Local.Path == "" {
+			continue
+		}
+		remove = append(remove, node.Package)
+	}
+
+	return ApplyPlan{Install: install, Remove: remove}, nil
 }
 
 func reconcileDiffSummary(diff ReconcileDiff) string {
