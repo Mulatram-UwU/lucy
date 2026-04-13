@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"slices"
@@ -24,8 +25,10 @@ type CompletionRequest struct {
 	FlagValuePrefix    string
 }
 
-const shellCompletionTrigger = "--generate-shell-completion"
-const completionDoubleDashSentinel = "__lucy_complete_double_dash__"
+const (
+	shellCompletionTrigger       = "--generate-shell-completion"
+	completionDoubleDashSentinel = "__lucy_complete_double_dash__"
+)
 
 // NormalizeCompletionArgs preserves the user's intent when the current token is
 // a literal "--".
@@ -189,7 +192,16 @@ func completionInvocationArgs(cmd *cli.Command) []string {
 }
 
 func CompleteFlagNames(cmd *cli.Command, prefix string) {
-	PrintCandidates(FilterByPrefix(flagCompletionCandidates(cmd), prefix))
+	PrintCandidates(FilterByPrefix(flagNameCompletionCandidates(cmd), prefix))
+}
+
+func CompleteFlagNameIfRequested(request CompletionRequest, cmd *cli.Command) bool {
+	if !request.CompletingFlagName {
+		return false
+	}
+
+	CompleteFlagNames(cmd, request.Current)
+	return true
 }
 
 func CompleteFlagValueIfRequested(
@@ -209,7 +221,11 @@ func CompleteFlagValueIfRequested(
 	return true
 }
 
-func flagCompletionCandidates(cmd *cli.Command) []CompletionCandidate {
+func CompletePackageIDIfRequested(ctx context.Context, cmd *cli.Command, request CompletionRequest) {
+	CompletePackageIDSuggestions(ctx, cmd, request.Current)
+}
+
+func flagNameCompletionCandidates(cmd *cli.Command) []CompletionCandidate {
 	flags := completionFlags(cmd)
 
 	seen := make(map[string]struct{})
@@ -217,8 +233,8 @@ func flagCompletionCandidates(cmd *cli.Command) []CompletionCandidate {
 
 	for _, flag := range flags {
 		usage := ""
-		if usageProvider, ok := flag.(interface{ GetUsage() string }); ok {
-			usage = usageProvider.GetUsage()
+		if docFlag, ok := flag.(cli.DocGenerationFlag); ok {
+			usage = docFlag.GetUsage()
 		}
 
 		for _, name := range flag.Names() {

@@ -39,12 +39,11 @@ var subcmdInfo = &cli.Command{
 			return
 		}
 
-		if request.CompletingFlagName {
-			CompleteFlagNames(cmd, request.Current)
+		if CompleteFlagNameIfRequested(request, cmd) {
 			return
 		}
 
-		CompletePackageIDSuggestions(context.Background(), cmd, request.Current)
+		CompletePackageIDIfRequested(context.Background(), cmd, request)
 	},
 }
 

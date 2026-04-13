@@ -64,12 +64,11 @@ var subcmdSearch = &cli.Command{
 			return
 		}
 
-		if request.CompletingFlagName {
-			CompleteFlagNames(cmd, request.Current)
+		if CompleteFlagNameIfRequested(request, cmd) {
 			return
 		}
 
-		CompletePackageIDSuggestions(ctx, cmd, request.Current)
+		CompletePackageIDIfRequested(ctx, cmd, request)
 	},
 }
 

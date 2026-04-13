@@ -47,12 +47,11 @@ var subcmdAdd = &cli.Command{
 	),
 	ShellComplete: func(_ context.Context, cmd *cli.Command) {
 		request := ParseCompletionRequest(cmd)
-		if request.CompletingFlagName {
-			CompleteFlagNames(cmd, request.Current)
+		if CompleteFlagNameIfRequested(request, cmd) {
 			return
 		}
 
-		CompletePackageIDSuggestions(context.Background(), cmd, request.Current)
+		CompletePackageIDIfRequested(context.Background(), cmd, request)
 	},
 }
 
