@@ -15,14 +15,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Backward compatibility alias - remove after migrating cmd.go to Cobra
-var subcmdInfo = infoCmd
-
 var infoCmd = &cobra.Command{
 	Use:   "info",
 	Short: "Display information of a mod or plugin",
 	Args:  cobra.ExactArgs(1),
 	ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		if len(args) >= 1 {
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
 		return CompletePackageIDSuggestions(context.Background(), "info", toComplete)
 	},
 	PreRunE: func(cmd *cobra.Command, args []string) error {
@@ -37,11 +37,8 @@ func init() {
 	addLongFlag(infoCmd)
 	addNoStyleFlag(infoCmd)
 	_ = infoCmd.RegisterFlagCompletionFunc(flagSourceName, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		var vals []string
-		for _, c := range StaticSourceCandidates() {
-			vals = append(vals, c.Value)
-		}
-		return FilterByPrefixStrings(vals, toComplete), cobra.ShellCompDirectiveNoFileComp
+		candidates := FilterByPrefix(StaticSourceCandidates(), toComplete)
+		return ToCobraCompletions(candidates), cobra.ShellCompDirectiveNoFileComp
 	})
 	rootCmd.AddCommand(infoCmd)
 }
@@ -97,7 +94,7 @@ func actionInfo(cmd *cobra.Command, args []string) error {
 // TODO: Generate `lucy add` command
 
 func infoOutput(p *types.Package, longOutput bool) *tui.Data {
-	maxLines := tools.Ternary[int](
+	maxLines := tools.Ternary(
 		longOutput,
 		0,
 		tools.TermHeight()*3/2,

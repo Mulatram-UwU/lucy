@@ -20,10 +20,6 @@ var cacheCmd = &cobra.Command{
 	},
 }
 
-// subcmdCache is an alias for cacheCmd for backward compatibility.
-// TODO: Remove after cmd/cmd.go is migrated to Cobra.
-var subcmdCache = cacheCmd
-
 var cacheLsCmd = &cobra.Command{
 	Use:     "ls",
 	Aliases: []string{"list"},

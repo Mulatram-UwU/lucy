@@ -27,16 +27,14 @@ func FilterByPrefix(candidates []CompletionCandidate, prefix string) []Completio
 	return out
 }
 
-// FilterByPrefixStrings returns string values from candidates filtered by prefix.
-func FilterByPrefixStrings(values []string, prefix string) []string {
-	if prefix == "" {
-		return values
-	}
-	lower := strings.ToLower(prefix)
-	var out []string
-	for _, v := range values {
-		if strings.HasPrefix(strings.ToLower(v), lower) {
-			out = append(out, v)
+// ToCobraCompletions converts CompletionCandidate slice to cobra's "value\tDescription" format.
+func ToCobraCompletions(candidates []CompletionCandidate) []string {
+	out := make([]string, 0, len(candidates))
+	for _, c := range candidates {
+		if c.Description != "" {
+			out = append(out, c.Value+"\t"+c.Description)
+		} else {
+			out = append(out, c.Value)
 		}
 	}
 	return out
@@ -45,21 +43,21 @@ func FilterByPrefixStrings(values []string, prefix string) []string {
 // StaticPlatformCandidates returns completion candidates for all user-facing platforms.
 func StaticPlatformCandidates() []CompletionCandidate {
 	return []CompletionCandidate{
-		{Value: types.PlatformMinecraft.String(), Description: ""},
-		{Value: types.PlatformFabric.String(), Description: ""},
-		{Value: types.PlatformForge.String(), Description: ""},
-		{Value: types.PlatformNeoforge.String(), Description: ""},
-		{Value: types.PlatformMCDR.String(), Description: ""},
+		{Value: types.PlatformMinecraft.String(), Description: "Vanilla / Bukkit plugins"},
+		{Value: types.PlatformFabric.String(), Description: "Fabric mods"},
+		{Value: types.PlatformForge.String(), Description: "Forge mods"},
+		{Value: types.PlatformNeoforge.String(), Description: "NeoForge mods"},
+		{Value: types.PlatformMCDR.String(), Description: "MCDR plugins"},
 	}
 }
 
 // StaticSourceCandidates returns completion candidates for concrete upstream sources.
 func StaticSourceCandidates() []CompletionCandidate {
 	return []CompletionCandidate{
-		{Value: "curseforge", Description: ""},
-		{Value: types.SourceModrinth.String(), Description: ""},
-		{Value: types.SourceGitHub.String(), Description: ""},
-		{Value: types.SourceMCDR.String(), Description: ""},
+		{Value: "curseforge", Description: "CurseForge source"},
+		{Value: types.SourceModrinth.String(), Description: "Modrinth source"},
+		{Value: types.SourceGitHub.String(), Description: "GitHub Releases"},
+		{Value: types.SourceMCDR.String(), Description: "MCDR Plugin Catalogue"},
 	}
 }
 
@@ -79,12 +77,11 @@ func StaticSortCandidates() []CompletionCandidate {
 func ParseCompletionToken(token string) (platform, name, version, segment string) {
 	if before, after, ok := strings.Cut(token, "@"); ok {
 		version = after
-		beforeAt := before
-		if slashIdx := strings.Index(beforeAt, "/"); slashIdx >= 0 {
-			platform = beforeAt[:slashIdx]
-			name = beforeAt[slashIdx+1:]
+		if beforeSlash, afterSlash, hasSlash := strings.Cut(before, "/"); hasSlash {
+			platform = beforeSlash
+			name = afterSlash
 		} else {
-			name = beforeAt
+			name = before
 		}
 		segment = "version"
 		return

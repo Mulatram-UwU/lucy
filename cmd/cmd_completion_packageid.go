@@ -40,11 +40,7 @@ func CompletePackageIDSuggestions(ctx context.Context, commandName string, token
 
 	if segment == "" || segment == "platform" {
 		candidates := FilterByPrefix(StaticPlatformCandidates(), token)
-		values := make([]string, 0, len(candidates))
-		for _, candidate := range candidates {
-			values = append(values, candidate.Value)
-		}
-		return values, cobra.ShellCompDirectiveNoFileComp
+		return ToCobraCompletions(candidates), cobra.ShellCompDirectiveNoFileComp
 	}
 
 	request := PackageIDSuggestionContext{
@@ -57,11 +53,7 @@ func CompletePackageIDSuggestions(ctx context.Context, commandName string, token
 	}
 
 	candidates := collectPackageIDSuggestionCandidates(ctx, request)
-	values := make([]string, 0, len(candidates))
-	for _, candidate := range candidates {
-		values = append(values, candidate.Value)
-	}
-	return values, cobra.ShellCompDirectiveNoFileComp
+	return ToCobraCompletions(candidates), cobra.ShellCompDirectiveNoFileComp
 }
 
 func collectPackageIDSuggestionCandidates(

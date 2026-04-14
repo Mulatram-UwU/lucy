@@ -17,10 +17,6 @@ var statusCmd = &cobra.Command{
 	RunE:  runWithErrorLogging(actionStatus),
 }
 
-// subcmdStatus is an alias for statusCmd for backward compatibility.
-// TODO: Remove after cmd/cmd.go is migrated to Cobra.
-var subcmdStatus = statusCmd
-
 func init() {
 	addJsonFlag(statusCmd)
 	addLongFlag(statusCmd)

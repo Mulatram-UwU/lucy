@@ -34,10 +34,6 @@ var addCmd = &cobra.Command{
 	RunE: runWithErrorLogging(actionAdd),
 }
 
-// subcmdAdd is an alias for addCmd for backward compatibility.
-// TODO: Remove after cmd/cmd.go is migrated to Cobra.
-var subcmdAdd = addCmd
-
 func init() {
 	addCmd.Flags().BoolP(flagForceName, "f", false, "Ignore version, dependency, and platform warnings")
 	addCmd.Flags().Bool(flagWithOptionalName, false, "Also install optional upstream dependencies")

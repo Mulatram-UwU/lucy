@@ -10,10 +10,6 @@ var initCmd = &cobra.Command{
 	},
 }
 
-// subcmdInit is an alias for initCmd for backward compatibility.
-// TODO: Remove after cmd/cmd.go is migrated to Cobra.
-var subcmdInit = initCmd
-
 func init() {
 	rootCmd.AddCommand(initCmd)
 }
