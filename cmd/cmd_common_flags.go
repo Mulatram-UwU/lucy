@@ -5,8 +5,6 @@ import (
 
 	"github.com/mclucy/lucy/types"
 	"github.com/spf13/cobra"
-
-	"github.com/urfave/cli/v3"
 )
 
 const (
@@ -50,40 +48,3 @@ func validateSourceFlag(cmd *cobra.Command) error {
 	}
 	return nil
 }
-
-// Legacy urfave/cli flag variables - kept for backward compatibility
-// with files that haven't been migrated to Cobra yet.
-// These will be removed once all cmd_*.go files are migrated.
-var (
-	flagJsonOutput = &cli.BoolFlag{
-		Name:  flagJsonName,
-		Usage: "Print raw JSON response",
-		Value: false,
-	}
-
-	flagLongOutput = &cli.BoolFlag{
-		Name:    flagLongName,
-		Usage:   "Show hidden or collapsed output",
-		Value:   false,
-		Aliases: []string{"l"},
-	}
-
-	flagSource = &cli.StringFlag{
-		Name:    flagSourceName,
-		Aliases: []string{"s"},
-		Usage:   "To fetch info from `SOURCE`",
-		Value:   "",
-		Validator: func(s string) error {
-			if types.ParseSource(s) == types.SourceUnknown {
-				return errors.New("unknown source " + s)
-			}
-			return nil
-		},
-	}
-
-	flagNoStyle = &cli.BoolFlag{
-		Name:  flagNoStyleName,
-		Usage: "Disable colored and styled output",
-		Value: false,
-	}
-)
