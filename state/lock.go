@@ -3,6 +3,7 @@ package state
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -252,4 +253,43 @@ func isValidPackageSide(side string) bool {
 	default:
 		return false
 	}
+}
+
+func CanonicalLockedPackages(packages []LockedPackage) []LockedPackage {
+	canonical := append([]LockedPackage(nil), packages...)
+	sort.Slice(canonical, func(i, j int) bool {
+		if canonical[i].ID != canonical[j].ID {
+			return canonical[i].ID < canonical[j].ID
+		}
+		if canonical[i].Version != canonical[j].Version {
+			return canonical[i].Version < canonical[j].Version
+		}
+		return canonical[i].InstallPath < canonical[j].InstallPath
+	})
+	return canonical
+}
+
+func PruneLockForManifest(lock *Lock, manifest *Manifest) *Lock {
+	if lock == nil {
+		return nil
+	}
+	pruned := *lock
+	pruned.Bundles = append([]LockedBundle(nil), lock.Bundles...)
+	allowed := make(map[string]struct{})
+	if manifest != nil {
+		for _, pkg := range manifest.Packages {
+			if pkg.Role == RoleIgnored {
+				continue
+			}
+			allowed[pkg.ID] = struct{}{}
+		}
+	}
+	packages := make([]LockedPackage, 0, len(lock.Packages))
+	for _, pkg := range lock.Packages {
+		if _, ok := allowed[pkg.ID]; ok {
+			packages = append(packages, pkg)
+		}
+	}
+	pruned.Packages = CanonicalLockedPackages(packages)
+	return &pruned
 }

@@ -339,6 +339,66 @@ func validateManifestPackage(pkg ManifestPackage) error {
 	return nil
 }
 
+func NormalizeManifestVersionIntent(version types.RawVersion) string {
+	trimmed := strings.TrimSpace(version.String())
+	switch trimmed {
+	case "", "any", "none", "unknown":
+		return types.VersionCompatible.String()
+	default:
+		return trimmed
+	}
+}
+
+func UpsertManifestRequiredIntent(manifest *Manifest, id types.PackageId, source string) *Manifest {
+	if manifest == nil {
+		defaults := ManifestDefaults()
+		manifest = &defaults
+	} else {
+		clone := *manifest
+		clone.Environment.CompatiblePlatforms = append([]string(nil), manifest.Environment.CompatiblePlatforms...)
+		clone.Sources.Custom = append([]CustomSource(nil), manifest.Sources.Custom...)
+		clone.Policy.ManagedRoots = append([]string(nil), manifest.Policy.ManagedRoots...)
+		clone.Policy.UnmanagedPaths = append([]string(nil), manifest.Policy.UnmanagedPaths...)
+		clone.Packages = append([]ManifestPackage(nil), manifest.Packages...)
+		clone.Bundles = append([]ManifestBundle(nil), manifest.Bundles...)
+		manifest = &clone
+	}
+
+	resolvedSource := strings.TrimSpace(source)
+	if types.ParseSource(resolvedSource) == types.SourceUnknown {
+		resolvedSource = "auto"
+	}
+	intentVersion := NormalizeManifestVersionIntent(id.Version)
+
+	for i := range manifest.Packages {
+		if manifest.Packages[i].ID != id.StringPlatformName() {
+			continue
+		}
+		manifest.Packages[i].Version = intentVersion
+		manifest.Packages[i].Source = resolvedSource
+		manifest.Packages[i].Role = RoleRequired
+		if manifest.Packages[i].Side == "" {
+			manifest.Packages[i].Side = SideUnknown
+		}
+		sort.Slice(manifest.Packages, func(i, j int) bool {
+			return manifest.Packages[i].ID < manifest.Packages[j].ID
+		})
+		return manifest
+	}
+
+	manifest.Packages = append(manifest.Packages, ManifestPackage{
+		ID:      id.StringPlatformName(),
+		Version: intentVersion,
+		Source:  resolvedSource,
+		Role:    RoleRequired,
+		Side:    SideUnknown,
+	})
+	sort.Slice(manifest.Packages, func(i, j int) bool {
+		return manifest.Packages[i].ID < manifest.Packages[j].ID
+	})
+	return manifest
+}
+
 func validateManifestBundle(bundle ManifestBundle) error {
 	if strings.TrimSpace(bundle.Name) == "" {
 		return fmt.Errorf("name is required")
@@ -395,6 +455,273 @@ func ManifestPackagesFromClassified(classified []ClassifiedPackage) []ManifestPa
 		return packages[i].ID < packages[j].ID
 	})
 	return packages
+}
+
+func UpdateManifestRolesForAdd(manifest *Manifest, requested []types.PackageId, lock *Lock) *Manifest {
+	base := cloneManifestOrDefaults(manifest)
+	required := manifestPackagesByRole(base.Packages, RoleRequired)
+	ignored := manifestPackagesByRole(base.Packages, RoleIgnored)
+
+	for _, id := range requested {
+		resolvedID := resolveManifestPackageID(id, &base, lock)
+		if resolvedID == "" {
+			continue
+		}
+		if _, keepIgnored := ignored[resolvedID]; keepIgnored {
+			continue
+		}
+
+		pkg, ok := manifestPackageByID(base.Packages, resolvedID)
+		if !ok {
+			pkg = defaultManifestPackageForID(resolvedID)
+		}
+		pkg.ID = resolvedID
+		pkg.Role = RoleRequired
+		pkg.Version = requestedManifestVersion(id, pkg.Version)
+		pkg.Source = normalizedManifestSource(pkg.Source)
+		if pkg.Side == "" {
+			pkg.Side = SideUnknown
+		}
+		required[resolvedID] = pkg
+	}
+
+	base.Packages = rebuildManifestPackages(required, ignored, lock)
+	return &base
+}
+
+func UpdateManifestRolesForRemove(manifest *Manifest, removed []types.PackageId, lock *Lock) *Manifest {
+	base := cloneManifestOrDefaults(manifest)
+	required := manifestPackagesByRole(base.Packages, RoleRequired)
+	ignored := manifestPackagesByRole(base.Packages, RoleIgnored)
+
+	for _, id := range removed {
+		resolvedID := resolveManifestPackageID(id, &base, lock)
+		if resolvedID == "" {
+			continue
+		}
+		if _, keepIgnored := ignored[resolvedID]; keepIgnored {
+			continue
+		}
+		delete(required, resolvedID)
+	}
+
+	base.Packages = rebuildManifestPackages(required, ignored, lock)
+	return &base
+}
+
+func cloneManifestOrDefaults(manifest *Manifest) Manifest {
+	if manifest == nil {
+		return ManifestDefaults()
+	}
+
+	cloned := *manifest
+	cloned.Environment.CompatiblePlatforms = append([]string(nil), manifest.Environment.CompatiblePlatforms...)
+	cloned.Sources.Custom = append([]CustomSource(nil), manifest.Sources.Custom...)
+	cloned.Policy.ManagedRoots = append([]string(nil), manifest.Policy.ManagedRoots...)
+	cloned.Policy.UnmanagedPaths = append([]string(nil), manifest.Policy.UnmanagedPaths...)
+	cloned.Packages = append([]ManifestPackage(nil), manifest.Packages...)
+	cloned.Bundles = append([]ManifestBundle(nil), manifest.Bundles...)
+	normalizeManifest(&cloned)
+	return cloned
+}
+
+func manifestPackagesByRole(packages []ManifestPackage, role ManifestRole) map[string]ManifestPackage {
+	indexed := make(map[string]ManifestPackage)
+	for _, pkg := range packages {
+		if pkg.Role != role {
+			continue
+		}
+		indexed[pkg.ID] = pkg
+	}
+	return indexed
+}
+
+func manifestPackageByID(packages []ManifestPackage, id string) (ManifestPackage, bool) {
+	for _, pkg := range packages {
+		if pkg.ID == id {
+			return pkg, true
+		}
+	}
+	return ManifestPackage{}, false
+}
+
+func rebuildManifestPackages(required map[string]ManifestPackage, ignored map[string]ManifestPackage, lock *Lock) []ManifestPackage {
+	classified := make([]ClassifiedPackage, 0, len(required)+len(ignored))
+	requiredIDs := make(map[string]struct{}, len(required))
+	ignoredIDs := make(map[string]struct{}, len(ignored))
+
+	for id, pkg := range required {
+		requiredIDs[id] = struct{}{}
+		classified = append(classified, ClassifiedPackage{
+			ID:       id,
+			Version:  pkg.Version,
+			Source:   normalizedManifestSource(pkg.Source),
+			Role:     RoleRequired,
+			Side:     normalizedManifestSide(pkg.Side),
+			Optional: pkg.Optional,
+			Pinned:   pkg.Pinned,
+		})
+	}
+	for id, pkg := range ignored {
+		ignoredIDs[id] = struct{}{}
+		classified = append(classified, ClassifiedPackage{
+			ID:       id,
+			Version:  pkg.Version,
+			Source:   normalizedManifestSource(pkg.Source),
+			Role:     RoleIgnored,
+			Side:     normalizedManifestSide(pkg.Side),
+			Optional: pkg.Optional,
+			Pinned:   pkg.Pinned,
+		})
+	}
+
+	if lock != nil {
+		for _, locked := range lock.Packages {
+			if _, keepIgnored := ignoredIDs[locked.ID]; keepIgnored {
+				continue
+			}
+			if _, isRequired := requiredIDs[locked.ID]; isRequired {
+				continue
+			}
+			if !lockedPackageReachableFromRequired(locked, requiredIDs) {
+				continue
+			}
+
+			classified = append(classified, ClassifiedPackage{
+				ID:       locked.ID,
+				Version:  locked.Version,
+				Source:   normalizedManifestSource(locked.Source),
+				Role:     RoleTransitive,
+				Side:     normalizedManifestSide(ManifestSide(locked.Side)),
+				Optional: locked.Optional,
+			})
+		}
+	}
+
+	return ManifestPackagesFromClassified(classified)
+}
+
+func lockedPackageReachableFromRequired(pkg LockedPackage, required map[string]struct{}) bool {
+	for _, step := range pkg.Provenance {
+		id := normalizeProvenanceStep(step)
+		if id == "" || id == "root" {
+			continue
+		}
+		if _, ok := required[id]; ok {
+			return true
+		}
+	}
+
+	requester := normalizeProvenanceStep(pkg.Requester)
+	if requester == "" || requester == "root" {
+		return false
+	}
+	_, ok := required[requester]
+	return ok
+}
+
+func normalizeProvenanceStep(step string) string {
+	trimmed := strings.TrimSpace(step)
+	if trimmed == "" || trimmed == "root" {
+		return trimmed
+	}
+	if prefix, _, ok := strings.Cut(trimmed, "@"); ok {
+		return prefix
+	}
+	return trimmed
+}
+
+func requestedManifestVersion(id types.PackageId, fallback string) string {
+	if id.Version == types.VersionAny {
+		if strings.TrimSpace(fallback) != "" {
+			return fallback
+		}
+		return types.VersionCompatible.String()
+	}
+	return id.Version.String()
+}
+
+func normalizedManifestSource(source string) string {
+	if types.ParseSource(source) == types.SourceUnknown {
+		return "auto"
+	}
+	if source == "" {
+		return "auto"
+	}
+	return source
+}
+
+func normalizedManifestSide(side ManifestSide) ManifestSide {
+	switch side {
+	case SideServer, SideClient, SideBoth, SideUnknown:
+		return side
+	default:
+		return SideUnknown
+	}
+}
+
+func defaultManifestPackageForID(id string) ManifestPackage {
+	return ManifestPackage{
+		ID:      id,
+		Version: types.VersionCompatible.String(),
+		Source:  "auto",
+		Role:    RoleRequired,
+		Side:    SideUnknown,
+	}
+}
+
+func resolveManifestPackageID(id types.PackageId, manifest *Manifest, lock *Lock) string {
+	if id.IsIdentityPackage() {
+		id.NormalizeIdentityPackage()
+	}
+	if id.Platform != types.PlatformAny && id.Platform != types.PlatformUnknown {
+		return id.StringPlatformName()
+	}
+
+	if manifest != nil {
+		candidate := resolveIDByName(id.Name, manifestPackageIDs(manifest.Packages))
+		if candidate != "" {
+			return candidate
+		}
+	}
+	if lock != nil {
+		ids := make([]string, 0, len(lock.Packages))
+		for _, pkg := range lock.Packages {
+			ids = append(ids, pkg.ID)
+		}
+		candidate := resolveIDByName(id.Name, ids)
+		if candidate != "" {
+			return candidate
+		}
+	}
+
+	return id.StringPlatformName()
+}
+
+func manifestPackageIDs(packages []ManifestPackage) []string {
+	ids := make([]string, 0, len(packages))
+	for _, pkg := range packages {
+		ids = append(ids, pkg.ID)
+	}
+	return ids
+}
+
+func resolveIDByName(name types.ProjectName, ids []string) string {
+	var match string
+	for _, id := range ids {
+		parts := strings.Split(id, "/")
+		if len(parts) != 2 || strings.TrimSpace(parts[1]) == "" {
+			continue
+		}
+		if parts[1] != name.String() {
+			continue
+		}
+		if match != "" && match != id {
+			return ""
+		}
+		match = id
+	}
+	return match
 }
 
 func (m Manifest) Marshal() ([]byte, error) {

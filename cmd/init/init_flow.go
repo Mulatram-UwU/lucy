@@ -488,13 +488,7 @@ func resolveTakeoverDependencyTargets(pkg types.Package, classifications map[str
 }
 
 func takeoverManifestVersion(version types.RawVersion) string {
-	trimmed := strings.TrimSpace(version.String())
-	switch trimmed {
-	case "", "any", "none", "unknown":
-		return types.VersionCompatible.String()
-	default:
-		return trimmed
-	}
+	return state.NormalizeManifestVersionIntent(version)
 }
 
 func takeoverManifestSource(remote *types.PackageRemote) string {
