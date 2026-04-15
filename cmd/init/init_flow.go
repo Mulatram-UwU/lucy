@@ -3,8 +3,15 @@
 // (--yes) fast path, and conflict-resolution semantics for partial .lucy/
 // directories.
 //
-// This file intentionally contains NO huh/bubbletea TUI code. The flow logic is pure and testable
-// without a terminal.
+// Init is takeover-first: its optimization target is adopting an existing
+// server directory safely, not treating the directory as a mostly blank slate.
+// For takeover-class init, Lucy must aggregate current server facts before it
+// proposes desired intent. Existing .lucy files remain informative context, but
+// they must not silently outrank newer observed reality. Persistent intent
+// changes still require explicit operator confirmation at review time.
+//
+// This file intentionally contains NO huh/bubbletea TUI code. The flow logic is
+// pure and testable without a terminal.
 package init
 
 import (
@@ -17,6 +24,59 @@ import (
 
 	"github.com/mclucy/lucy/state"
 )
+
+// InitOptimizationGoal states what init is trying to optimize for.
+type InitOptimizationGoal string
+
+const (
+	// OptimizationGoalTakeoverExistingServer makes existing-server adoption the
+	// primary target. Init should prefer reconstructing the current environment
+	// over inventing a fresh one.
+	OptimizationGoalTakeoverExistingServer InitOptimizationGoal = "takeover_existing_server"
+)
+
+// InitDiscoveryMode distinguishes sequencing from behavior.
+type InitDiscoveryMode string
+
+const (
+	// DiscoveryFirst means discovery happens early in the sequence, but later
+	// steps may still ignore or overwrite discovered facts.
+	DiscoveryFirst InitDiscoveryMode = "discovery_first"
+
+	// DiscoveryLed means discovery shapes the proposal itself: observed facts are
+	// the primary input to takeover intent, existing .lucy files are hints unless
+	// re-confirmed, and the review step must surface any divergence before writes.
+	DiscoveryLed InitDiscoveryMode = "discovery_led"
+)
+
+// InitFactSource identifies which input layer contributed a proposed init fact.
+type InitFactSource string
+
+const (
+	// FactSourceObserved is live filesystem/probe truth from the current server.
+	FactSourceObserved InitFactSource = "observed"
+
+	// FactSourceUserConfirmed is an explicit operator confirmation or override.
+	// It does not remove the need to observe first; it is the confirmation gate
+	// before persistent desired state is written.
+	FactSourceUserConfirmed InitFactSource = "user_confirmed"
+
+	// FactSourceExistingLucy is inherited context from pre-existing .lucy files.
+	// It is informative for takeover, but never silently authoritative.
+	FactSourceExistingLucy InitFactSource = "existing_lucy"
+)
+
+// TakeoverFactPrecedence returns the contract order for takeover-class init
+// proposals. Testable rule: live observed state is primary, explicit operator
+// confirmation is the approval gate for persisting or overriding, and existing
+// .lucy state is the lowest-precedence hint layer.
+func TakeoverFactPrecedence() []InitFactSource {
+	return []InitFactSource{
+		FactSourceObserved,
+		FactSourceUserConfirmed,
+		FactSourceExistingLucy,
+	}
+}
 
 // Constants and types related to the init flow state machine, result construction,
 
@@ -98,6 +158,13 @@ const (
 // through the init flow. It is passed by pointer through every step so that
 // both the interactive TUI and the non-interactive fast path share one model.
 type InitFlowState struct {
+	// OptimizationGoal declares the contract this init flow is aiming at.
+	OptimizationGoal InitOptimizationGoal
+
+	// DiscoveryMode documents whether init is only ordered discovery-first or is
+	// behaviorally discovery-led for takeover.
+	DiscoveryMode InitDiscoveryMode
+
 	// CurrentStep is the step the flow is currently on.
 	CurrentStep InitStep
 
@@ -123,7 +190,8 @@ type InitFlowState struct {
 	SourcePriority []string
 
 	// Confirmed is true only after the user explicitly approves the summary at
-	// StepReview. No file I/O must occur before this is true.
+	// StepReview. No file I/O or persistent intent mutation must occur before
+	// this is true.
 	Confirmed bool
 
 	// Aborted is true if the user cancelled the flow before StepReview +
@@ -142,8 +210,10 @@ type InitFlowState struct {
 	// Default: PreserveExisting.
 	ConflictResolution ConflictMode
 
-	// DiscoveredDefaults stores lightweight server-directory guesses that init
-	// can use as scaffolding defaults before any file is written.
+	// DiscoveredDefaults stores takeover inputs that init will use to propose a
+	// starting intent before any file is written. Under the takeover-first
+	// contract, these defaults should come from live observation first and only
+	// fall back to existing .lucy hints when observation is missing.
 	DiscoveredDefaults DiscoveredDefaults
 
 	// workDir is the project root checked during construction.
@@ -158,6 +228,8 @@ func NewInitFlowState(workDir string) *InitFlowState {
 	discovered := DiscoverServerDefaults(workDir)
 
 	s := &InitFlowState{
+		OptimizationGoal:   OptimizationGoalTakeoverExistingServer,
+		DiscoveryMode:      DiscoveryLed,
 		CurrentStep:        StepWelcome,
 		SourcePriority:     defaults.Sources.Priority,
 		ConflictResolution: PreserveExisting,
@@ -201,17 +273,19 @@ func NewInitFlowState(workDir string) *InitFlowState {
 		if err != nil {
 			s.ExistingStateConflicts = append(s.ExistingStateConflicts, formatExistingStateConflict(state.ManifestFile, err))
 		} else if manifest != nil {
-			if strings.TrimSpace(manifest.Environment.GameVersion) != "" {
+			if strings.TrimSpace(s.GameVersion) == "" && strings.TrimSpace(manifest.Environment.GameVersion) != "" {
 				s.GameVersion = strings.TrimSpace(manifest.Environment.GameVersion)
 			}
-			if strings.TrimSpace(manifest.Environment.Platform) != "" {
+			if strings.TrimSpace(s.Platform) == "" && strings.TrimSpace(manifest.Environment.Platform) != "" {
 				s.Platform = strings.TrimSpace(manifest.Environment.Platform)
 			}
-			if strings.TrimSpace(manifest.Environment.PlatformVersion) != "" {
+			if strings.TrimSpace(s.PlatformVersion) == "" && strings.TrimSpace(manifest.Environment.PlatformVersion) != "" {
 				s.PlatformVersion = strings.TrimSpace(manifest.Environment.PlatformVersion)
 			}
 			if len(manifest.Policy.ManagedRoots) > 0 {
-				s.ManagedRoots = append([]string(nil), manifest.Policy.ManagedRoots...)
+				if len(s.ManagedRoots) == 0 {
+					s.ManagedRoots = append([]string(nil), manifest.Policy.ManagedRoots...)
+				}
 			}
 		}
 	}
@@ -284,7 +358,8 @@ func shouldSkip(s *InitFlowState, step InitStep) bool {
 // decision on ManagedRoots.
 //
 // CanProceed does NOT check Confirmed; callers must also verify that before
-// performing any I/O.
+// performing any I/O. This preserves the takeover contract distinction between
+// discovery-led proposal building and explicit user-approved persistence.
 func CanProceed(s *InitFlowState) bool {
 	if s.GameVersion == "" {
 		return false

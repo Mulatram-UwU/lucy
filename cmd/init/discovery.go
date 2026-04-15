@@ -34,39 +34,50 @@ type DiscoveredDefaults struct {
 	ManagedRoots     []string
 	DetectedPackages []string
 	Confidence       DiscoveryConfidence
+	ExistingLucy     ExistingLucyHints
 }
 
+// ExistingLucyHints captures pre-existing .lucy state as advisory context.
+// Under takeover-first init, these hints may fill observation gaps or explain
+// drift, but they must not silently outrank live observed state.
+type ExistingLucyHints struct {
+	GameVersion     string
+	Platform        string
+	PlatformVersion string
+	ManagedRoots    []string
+	ConfigPresent   bool
+	ManifestPresent bool
+	LockPresent     bool
+}
+
+func (h ExistingLucyHints) HasAny() bool {
+	return h.ConfigPresent || h.ManifestPresent || h.LockPresent || h.GameVersion != "" || h.Platform != "" || h.PlatformVersion != "" || len(h.ManagedRoots) > 0
+}
+
+// DiscoverServerDefaults is the lightweight takeover aggregator used by the
+// current init flow. Contractually, takeover-class init must aggregate current
+// server information before it proposes desired intent:
+//   - discovery-first is only about sequence: discover before asking
+//   - discovery-led is about behavior: observed facts become the primary input
+//     to the proposal, and stale .lucy files are demoted to advisory hints
+//
+// Until init is wired into probe.ServerInfo(), this function approximates the
+// observed layer with local file and archive inspection. Existing .lucy state is
+// recorded separately and only fills gaps when no live observation is available.
 func DiscoverServerDefaults(workDir string) DiscoveredDefaults {
 	defaults := DiscoveredDefaults{Confidence: ConfidenceNone}
 
-	manifest, manifestExists, manifestErr := state.ReadManifest(workDir)
-	if manifestErr == nil && manifestExists && manifest != nil {
-		defaults.GameVersion = strings.TrimSpace(manifest.Environment.GameVersion)
-		defaults.Platform = strings.TrimSpace(manifest.Environment.Platform)
-		defaults.PlatformVersion = strings.TrimSpace(manifest.Environment.PlatformVersion)
-		defaults.ManagedRoots = appendUnique(defaults.ManagedRoots, manifest.Policy.ManagedRoots...)
-		defaults.Confidence = maxConfidence(defaults.Confidence, ConfidenceHigh)
-	}
-
-	config, configExists, configErr := state.ReadConfig(workDir)
-	if configErr == nil && configExists && config != nil {
-		defaults.ManagedRoots = appendUnique(defaults.ManagedRoots, config.Scope.ManagedRoots...)
-		defaults.Confidence = maxConfidence(defaults.Confidence, ConfidenceHigh)
-	}
-
-	if defaults.GameVersion == "" {
-		if version := discoverGameVersion(workDir); version != "" {
-			defaults.GameVersion = version
-			defaults.Confidence = maxConfidence(defaults.Confidence, ConfidenceMedium)
-		}
+	if version := discoverGameVersion(workDir); version != "" {
+		defaults.GameVersion = version
+		defaults.Confidence = maxConfidence(defaults.Confidence, ConfidenceMedium)
 	}
 
 	platform, platformVersion, platformConfidence := discoverPlatform(workDir)
-	if defaults.Platform == "" && platform != "" {
+	if platform != "" {
 		defaults.Platform = platform
 		defaults.Confidence = maxConfidence(defaults.Confidence, platformConfidence)
 	}
-	if defaults.PlatformVersion == "" && platformVersion != "" {
+	if platformVersion != "" {
 		defaults.PlatformVersion = platformVersion
 		defaults.Confidence = maxConfidence(defaults.Confidence, platformConfidence)
 	}
@@ -78,6 +89,41 @@ func DiscoverServerDefaults(workDir string) DiscoveredDefaults {
 
 	defaults.DetectedPackages = discoverPackages(workDir)
 	if len(defaults.DetectedPackages) > 0 && defaults.Confidence == ConfidenceNone {
+		defaults.Confidence = ConfidenceLow
+	}
+
+	manifest, manifestExists, manifestErr := state.ReadManifest(workDir)
+	if manifestErr == nil && manifestExists && manifest != nil {
+		defaults.ExistingLucy.ManifestPresent = true
+		defaults.ExistingLucy.GameVersion = strings.TrimSpace(manifest.Environment.GameVersion)
+		defaults.ExistingLucy.Platform = strings.TrimSpace(manifest.Environment.Platform)
+		defaults.ExistingLucy.PlatformVersion = strings.TrimSpace(manifest.Environment.PlatformVersion)
+		defaults.ExistingLucy.ManagedRoots = appendUnique(defaults.ExistingLucy.ManagedRoots, manifest.Policy.ManagedRoots...)
+	}
+
+	config, configExists, configErr := state.ReadConfig(workDir)
+	if configErr == nil && configExists && config != nil {
+		defaults.ExistingLucy.ConfigPresent = true
+		defaults.ExistingLucy.ManagedRoots = appendUnique(defaults.ExistingLucy.ManagedRoots, config.Scope.ManagedRoots...)
+	}
+
+	if _, lockExists, lockErr := state.ReadLock(workDir); lockErr == nil && lockExists {
+		defaults.ExistingLucy.LockPresent = true
+	}
+
+	if defaults.GameVersion == "" {
+		defaults.GameVersion = defaults.ExistingLucy.GameVersion
+	}
+	if defaults.Platform == "" {
+		defaults.Platform = defaults.ExistingLucy.Platform
+	}
+	if defaults.PlatformVersion == "" {
+		defaults.PlatformVersion = defaults.ExistingLucy.PlatformVersion
+	}
+	if len(defaults.ManagedRoots) == 0 {
+		defaults.ManagedRoots = appendUnique(defaults.ManagedRoots, defaults.ExistingLucy.ManagedRoots...)
+	}
+	if defaults.Confidence == ConfidenceNone && defaults.ExistingLucy.HasAny() {
 		defaults.Confidence = ConfidenceLow
 	}
 
@@ -402,6 +448,9 @@ func describeDiscovery(defaults DiscoveredDefaults) string {
 	}
 	if len(defaults.DetectedPackages) > 0 {
 		parts = append(parts, fmt.Sprintf("packages=%d", len(defaults.DetectedPackages)))
+	}
+	if defaults.ExistingLucy.HasAny() {
+		parts = append(parts, "existing-.lucy=advisory")
 	}
 	if len(parts) == 0 {
 		return "No server defaults detected"
