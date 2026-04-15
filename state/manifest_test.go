@@ -34,6 +34,7 @@ unmanaged_paths = ["world/**"]
 id = "fabric/fabric-api"
 version = "compatible"
 source = "auto"
+role = "required"
 side = "both"
 optional = false
 pinned = false
@@ -98,6 +99,7 @@ unmanaged_paths = []
 id = "fabric/lithium"
 version = "compatible"
 source = "auto"
+role = "required"
 side = "server"
 optional = false
 pinned = false
@@ -106,6 +108,7 @@ pinned = false
 id = "fabric/sodium"
 version = "latest"
 source = "modrinth"
+role = "transitive"
 side = "client"
 optional = true
 pinned = false
@@ -114,6 +117,7 @@ pinned = false
 id = "fabric/fabric-api"
 version = "0.119.2+1.21.5"
 source = "github"
+role = "ignored"
 side = "both"
 optional = false
 pinned = true
@@ -153,6 +157,61 @@ pinned = true
 	}
 }
 
+func TestManifestPreservesFuzzyVersionIntentVerbatim(t *testing.T) {
+	manifestText := []byte(`
+[format]
+version = "v1"
+
+[environment]
+game_version = "1.21.1"
+platform = "fabric"
+platform_version = "0.16.10"
+
+[layout]
+mods_dir = "mods"
+plugins_dir = "plugins"
+config_dir = "config"
+
+[policy]
+managed_roots = ["mods", "plugins"]
+unmanaged_paths = []
+
+[[packages]]
+id = "fabric/lithium"
+version = ">=0.12.0 <0.13.0"
+source = "auto"
+role = "required"
+side = "server"
+optional = false
+pinned = false
+`)
+
+	manifest, err := ParseManifest(manifestText)
+	if err != nil {
+		t.Fatalf("expected fuzzy manifest version intent to parse: %v", err)
+	}
+
+	if got := manifest.Packages[0].Version; got != ">=0.12.0 <0.13.0" {
+		t.Fatalf("expected manifest to preserve fuzzy selector verbatim, got %q", got)
+	}
+
+	data, err := SerializeManifest(manifest)
+	if err != nil {
+		t.Fatalf("serialize manifest failed: %v", err)
+	}
+
+	reparsed, err := ParseManifest(data)
+	if err != nil {
+		t.Fatalf("reparse manifest failed: %v", err)
+	}
+	if got := reparsed.Packages[0].Version; got != ">=0.12.0 <0.13.0" {
+		t.Fatalf("expected fuzzy selector to survive round trip, got %q", got)
+	}
+	if reparsed.Packages[0].Version == "0.12.9" {
+		t.Fatal("manifest intent must not be rewritten to an exact resolved version")
+	}
+}
+
 func TestManifestBundlesRemainSeparateFromPackages(t *testing.T) {
 	manifestText := []byte(`
 [format]
@@ -176,6 +235,7 @@ unmanaged_paths = []
 id = "none/luckperms"
 version = "latest"
 source = "curseforge"
+role = "required"
 side = "server"
 optional = false
 pinned = false

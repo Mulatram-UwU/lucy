@@ -66,13 +66,36 @@ const (
 )
 
 type ManifestPackage struct {
-	ID       string       `toml:"id"`
-	Version  string       `toml:"version"`
-	Source   string       `toml:"source"`
+	ID string `toml:"id"`
+	// Version stores version intent exactly as written in the manifest.
+	//
+	// It may be an exact version or a fuzzy selector such as "latest",
+	// "compatible", or a future range/non-exact preference. The manifest is the
+	// intent layer, so Lucy must preserve this string verbatim instead of
+	// rewriting it to the currently resolved exact version.
+	Version string `toml:"version"`
+	Source  string `toml:"source"`
+	// Role defines how Lucy should treat this package in desired state.
+	//
+	// - required: explicit operator intent, including user-selected leaf nodes during adopt
+	// - transitive: resolver-derived dependency Lucy may auto-prune when no longer needed
+	// - ignored: known content Lucy sees but must leave outside sync responsibility
+	//
+	// Non-leaf nodes remain visible to init/adopt users because Minecraft package
+	// boundaries are often fuzzy, but that visibility must not become a fourth role.
+	Role     ManifestRole `toml:"role"`
 	Side     ManifestSide `toml:"side"`
 	Optional bool         `toml:"optional"`
 	Pinned   bool         `toml:"pinned"`
 }
+
+type ManifestRole string
+
+const (
+	RoleRequired   ManifestRole = "required"
+	RoleTransitive ManifestRole = "transitive"
+	RoleIgnored    ManifestRole = "ignored"
+)
 
 type BundleType string
 
@@ -212,6 +235,14 @@ func validateManifestPackage(pkg ManifestPackage) error {
 		return fmt.Errorf("invalid source %q", pkg.Source)
 	}
 
+	switch pkg.Role {
+	case RoleRequired, RoleTransitive, RoleIgnored:
+	case "":
+		return fmt.Errorf("role is required")
+	default:
+		return fmt.Errorf("invalid role %q; expected one of required, transitive, ignored", pkg.Role)
+	}
+
 	switch pkg.Side {
 	case SideServer, SideClient, SideBoth, SideUnknown:
 	default:
@@ -279,6 +310,7 @@ func (m Manifest) Marshal() ([]byte, error) {
 		writeTomlStringField(&buf, "id", pkg.ID)
 		writeTomlStringField(&buf, "version", pkg.Version)
 		writeTomlStringField(&buf, "source", pkg.Source)
+		writeTomlStringField(&buf, "role", string(pkg.Role))
 		writeTomlStringField(&buf, "side", string(pkg.Side))
 		writeTomlBoolField(&buf, "optional", pkg.Optional)
 		writeTomlBoolField(&buf, "pinned", pkg.Pinned)
