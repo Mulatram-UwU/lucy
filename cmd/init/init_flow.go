@@ -226,36 +226,11 @@ func CanProceed(s *InitFlowState) bool {
 	return true
 }
 
-// Manifest is a forward-compatible placeholder for the manifest type.
-//
-// This type alias lives here only until the concrete state.Manifest type is
-// available. Import cycle rules prohibit importing an unfinished package, so
-// this stub lets cmd/init compile now and be trivially replaced later.
-type Manifest = manifestPlaceholder
+// Types for the final result of the flow and error conditions during result construction.
 
-// manifestPlaceholder is the temporary stand-in struct. Fields mirror the
-// expected top-level shape documented in docs/state-model.md.
-type manifestPlaceholder struct {
-	// GameVersion is the Minecraft version declared in the manifest.
-	GameVersion string
-	// Platform is the server platform identifier.
-	Platform string
-	// PlatformVersion is the platform loader version.
-	PlatformVersion string
-	// ManagedRoots is the set of directories Lucy manages.
-	ManagedRoots []string
-}
+type Manifest = state.Manifest
 
-// Lock is a forward-compatible placeholder for the lock type.
-type Lock = lockPlaceholder
-
-// lockPlaceholder is the temporary stand-in struct for the lockfile root.
-// Init scaffolds an empty lock; the real fields will be populated on first
-// install/resolve.
-type lockPlaceholder struct {
-	// FormatVersion identifies the lockfile schema version.
-	FormatVersion string
-}
+type Lock = state.Lock
 
 // InitFlowResult is returned by BuildResult once the user has confirmed. It
 // describes exactly what will be written and what will be preserved.
@@ -331,13 +306,12 @@ func BuildResult(s *InitFlowState) (InitFlowResult, error) {
 	// manifest.toml
 	mfPath := string(state.ManifestFile)
 	if willWrite(mfPath) {
-		mf := &Manifest{
-			GameVersion:     s.GameVersion,
-			Platform:        s.Platform,
-			PlatformVersion: s.PlatformVersion,
-			ManagedRoots:    s.ManagedRoots,
-		}
-		result.ManifestToWrite = mf
+		mf := state.ManifestDefaults()
+		mf.Environment.GameVersion = s.GameVersion
+		mf.Environment.Platform = s.Platform
+		mf.Environment.PlatformVersion = s.PlatformVersion
+		mf.Policy.ManagedRoots = s.ManagedRoots
+		result.ManifestToWrite = &mf
 		result.WrittenFiles = append(result.WrittenFiles, mfPath)
 	} else {
 		result.SkippedFiles = append(result.SkippedFiles, mfPath)
@@ -346,8 +320,8 @@ func BuildResult(s *InitFlowState) (InitFlowResult, error) {
 	// lock.json
 	lkPath := string(state.LockFile)
 	if willWrite(lkPath) {
-		lk := &Lock{FormatVersion: "v1"}
-		result.LockToWrite = lk
+		lk := state.NewLock()
+		result.LockToWrite = &lk
 		result.WrittenFiles = append(result.WrittenFiles, lkPath)
 	} else {
 		result.SkippedFiles = append(result.SkippedFiles, lkPath)
