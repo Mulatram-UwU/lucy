@@ -131,7 +131,7 @@ func RunInteractiveInit(s *InitFlowState) error {
 					huh.NewOption("Fabric – lightweight, fast-updating mod loader", "fabric"),
 					huh.NewOption("NeoForge – community fork of Forge (recommended for 1.20.2+)", "neoforge"),
 					huh.NewOption("Forge – original mod loader", "forge"),
-					huh.NewOption("MCDR – plugin framework for vanilla/Bukkit servers", "mcdr"),
+					huh.NewOption("MCDR – independent plugin framework/controller", "mcdr"),
 					huh.NewOption("None / Vanilla – no modding platform", "none"),
 				).
 				Value(&s.Platform),
