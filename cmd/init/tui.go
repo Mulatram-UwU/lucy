@@ -51,6 +51,9 @@ func RunInteractiveInit(s *InitFlowState) error {
 				"How should lucy init handle them?",
 			strings.Join(s.ExistingFiles, "\n  "),
 		)
+		if len(s.ExistingStateConflicts) > 0 {
+			conflictDesc += "\n\nConflicts to resolve before writing:\n\n  " + strings.Join(s.ExistingStateConflicts, "\n  ")
+		}
 		conflictMode := string(s.ConflictResolution)
 		conflictForm := huh.NewForm(
 			huh.NewGroup(
@@ -82,12 +85,23 @@ func RunInteractiveInit(s *InitFlowState) error {
 		}
 	}
 
+	if len(s.ExistingStateConflicts) > 0 {
+		s.Aborted = true
+		fmt.Printf("\nInit aborted: existing Lucy state has conflicts that must be resolved first.\n  %s\n", strings.Join(s.ExistingStateConflicts, "\n  "))
+		return nil
+	}
+
+	gameVersionPlaceholder := "1.21.4"
+	if s.DiscoveredDefaults.GameVersion != "" {
+		gameVersionPlaceholder = s.DiscoveredDefaults.GameVersion
+	}
+
 	gameVersionForm := huh.NewForm(
 		huh.NewGroup(
 			huh.NewInput().
 				Title("Minecraft game version").
 				Description("Enter the Minecraft server version this environment targets (e.g. 1.21.4).").
-				Placeholder("1.21.4").
+				Placeholder(gameVersionPlaceholder).
 				Validate(func(v string) error {
 					v = strings.TrimSpace(v)
 					if v == "" {
@@ -211,29 +225,38 @@ func RunInteractiveInit(s *InitFlowState) error {
 func buildSummary(s *InitFlowState) string {
 	var sb strings.Builder
 
-	sb.WriteString(fmt.Sprintf("Game version:    %s\n", s.GameVersion))
+	_, _ = fmt.Fprintf(&sb, "Game version:    %s\n", s.GameVersion)
 
 	if s.Platform == "" || s.Platform == "none" {
 		sb.WriteString("Platform:        none (vanilla)\n")
 	} else {
-		sb.WriteString(fmt.Sprintf("Platform:        %s\n", s.Platform))
+		_, _ = fmt.Fprintf(&sb, "Platform:        %s\n", s.Platform)
 		if s.PlatformVersion != "" {
-			sb.WriteString(fmt.Sprintf("Loader version:  %s\n", s.PlatformVersion))
+			_, _ = fmt.Fprintf(&sb, "Loader version:  %s\n", s.PlatformVersion)
 		} else {
 			sb.WriteString("Loader version:  (latest)\n")
 		}
 	}
 
 	if len(s.ManagedRoots) > 0 {
-		sb.WriteString(fmt.Sprintf("Managed dirs:    %s\n", strings.Join(s.ManagedRoots, ", ")))
+		_, _ = fmt.Fprintf(&sb, "Managed dirs:    %s\n", strings.Join(s.ManagedRoots, ", "))
 	} else {
 		sb.WriteString("Managed dirs:    (none selected)\n")
 	}
 
-	sb.WriteString(fmt.Sprintf("Conflict mode:   %s\n", s.ConflictResolution))
+	_, _ = fmt.Fprintf(&sb, "Conflict mode:   %s\n", s.ConflictResolution)
 
 	if len(s.ExistingFiles) > 0 {
-		sb.WriteString(fmt.Sprintf("\nExisting files:  %s\n", strings.Join(s.ExistingFiles, ", ")))
+		_, _ = fmt.Fprintf(&sb, "\nExisting files:  %s\n", strings.Join(s.ExistingFiles, ", "))
+	}
+	if len(s.ExistingStateConflicts) > 0 {
+		_, _ = fmt.Fprintf(&sb, "Conflicts:       %s\n", strings.Join(s.ExistingStateConflicts, "; "))
+	}
+	if s.DiscoveredDefaults.Confidence != ConfidenceNone {
+		_, _ = fmt.Fprintf(&sb, "Discovery:       %s\n", describeDiscovery(s.DiscoveredDefaults))
+		if len(s.DiscoveredDefaults.DetectedPackages) > 0 {
+			_, _ = fmt.Fprintf(&sb, "Detected pkgs:   %s\n", strings.Join(s.DiscoveredDefaults.DetectedPackages, ", "))
+		}
 	}
 
 	sb.WriteString("\nFiles to create:\n")

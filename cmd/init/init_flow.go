@@ -8,8 +8,10 @@
 package init
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/mclucy/lucy/state"
 )
@@ -131,9 +133,17 @@ type InitFlowState struct {
 	// disk when NewInitFlowState was called.
 	ExistingFiles []string
 
+	// ExistingStateConflicts lists existing state files that could not be safely
+	// preserved because they were unreadable or invalid.
+	ExistingStateConflicts []string
+
 	// ConflictResolution controls how init handles the ExistingFiles.
 	// Default: PreserveExisting.
 	ConflictResolution ConflictMode
+
+	// DiscoveredDefaults stores lightweight server-directory guesses that init
+	// can use as scaffolding defaults before any file is written.
+	DiscoveredDefaults DiscoveredDefaults
 
 	// workDir is the project root checked during construction.
 	workDir string
@@ -144,13 +154,18 @@ type InitFlowState struct {
 // from state.ConfigDefaults().
 func NewInitFlowState(workDir string) *InitFlowState {
 	defaults := state.ConfigDefaults()
+	discovered := DiscoverServerDefaults(workDir)
 
 	s := &InitFlowState{
 		CurrentStep:        StepWelcome,
-		ManagedRoots:       defaults.Scope.ManagedRoots,
 		SourcePriority:     defaults.Sources.Priority,
 		ConflictResolution: PreserveExisting,
+		DiscoveredDefaults: discovered,
 		workDir:            workDir,
+	}
+	ApplyDiscoveredDefaults(s, discovered)
+	if len(s.ManagedRoots) == 0 {
+		s.ManagedRoots = append([]string(nil), defaults.Scope.ManagedRoots...)
 	}
 
 	// Discover which target state files already exist.
@@ -166,10 +181,63 @@ func NewInitFlowState(workDir string) *InitFlowState {
 		}
 	}
 
+	if _, exists := containsExistingFile(s.ExistingFiles, string(state.ConfigFile)); exists {
+		config, _, err := state.ReadConfig(workDir)
+		if err != nil {
+			s.ExistingStateConflicts = append(s.ExistingStateConflicts, formatExistingStateConflict(state.ConfigFile, err))
+		} else if config != nil {
+			if len(s.ManagedRoots) == 0 && len(config.Scope.ManagedRoots) > 0 {
+				s.ManagedRoots = append([]string(nil), config.Scope.ManagedRoots...)
+			}
+			if len(config.Sources.Priority) > 0 {
+				s.SourcePriority = append([]string(nil), config.Sources.Priority...)
+			}
+		}
+	}
+
+	if _, exists := containsExistingFile(s.ExistingFiles, string(state.ManifestFile)); exists {
+		manifest, _, err := state.ReadManifest(workDir)
+		if err != nil {
+			s.ExistingStateConflicts = append(s.ExistingStateConflicts, formatExistingStateConflict(state.ManifestFile, err))
+		} else if manifest != nil {
+			if strings.TrimSpace(manifest.Environment.GameVersion) != "" {
+				s.GameVersion = strings.TrimSpace(manifest.Environment.GameVersion)
+			}
+			if strings.TrimSpace(manifest.Environment.Platform) != "" {
+				s.Platform = strings.TrimSpace(manifest.Environment.Platform)
+			}
+			if strings.TrimSpace(manifest.Environment.PlatformVersion) != "" {
+				s.PlatformVersion = strings.TrimSpace(manifest.Environment.PlatformVersion)
+			}
+			if len(manifest.Policy.ManagedRoots) > 0 {
+				s.ManagedRoots = append([]string(nil), manifest.Policy.ManagedRoots...)
+			}
+		}
+	}
+
+	if _, exists := containsExistingFile(s.ExistingFiles, string(state.LockFile)); exists {
+		if _, _, err := state.ReadLock(workDir); err != nil {
+			s.ExistingStateConflicts = append(s.ExistingStateConflicts, formatExistingStateConflict(state.LockFile, err))
+		}
+	}
+
 	return s
 }
 
-// Step machine logic.
+func containsExistingFile(files []string, want string) (int, bool) {
+	for i, file := range files {
+		if file == want {
+			return i, true
+		}
+	}
+	return -1, false
+}
+
+func formatExistingStateConflict(file state.StateFile, err error) string {
+	return fmt.Sprintf("%s exists but could not be preserved safely: %v", file, err)
+}
+
+// Step machine logic
 
 // NextStep returns the step that should follow the current state, applying any
 // conditional skips. It does not mutate s; the caller is responsible for
@@ -265,6 +333,12 @@ type InitFlowResult struct {
 func BuildResult(s *InitFlowState) (InitFlowResult, error) {
 	if !CanProceed(s) {
 		return InitFlowResult{}, &ErrFlowIncomplete{State: s}
+	}
+	if len(s.ExistingStateConflicts) > 0 {
+		return InitFlowResult{}, &ErrConflict{
+			Mode:          s.ConflictResolution,
+			ConflictFiles: append([]string(nil), s.ExistingStateConflicts...),
+		}
 	}
 
 	existingSet := make(map[string]bool, len(s.ExistingFiles))
