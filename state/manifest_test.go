@@ -2,6 +2,7 @@ package state
 
 import (
 	"bytes"
+	"reflect"
 	"testing"
 )
 
@@ -212,6 +213,76 @@ pinned = false
 	}
 }
 
+func TestManifestSupportsCompatiblePlatformsAndPreservesIntent(t *testing.T) {
+	manifestText := []byte(`
+[format]
+version = "v1"
+
+[environment]
+game_version = "1.21.1"
+platform = "neoforge"
+platform_version = "21.1.0"
+compatible_platforms = ["fabric", "mcdr", "sinytra"]
+
+[layout]
+mods_dir = "mods"
+plugins_dir = "plugins"
+config_dir = "config"
+
+[policy]
+managed_roots = ["mods", "plugins"]
+unmanaged_paths = []
+
+[[packages]]
+id = "neoforge/connector"
+version = "compatible"
+source = "modrinth"
+role = "required"
+side = "server"
+optional = false
+pinned = false
+`)
+
+	manifest, err := ParseManifest(manifestText)
+	if err != nil {
+		t.Fatalf("expected compatible platforms manifest to parse: %v", err)
+	}
+
+	if got, want := manifest.Environment.CompatiblePlatforms, []string{"fabric", "mcdr", "sinytra"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("environment compatible platforms mismatch: got %#v want %#v", got, want)
+	}
+	if got := manifest.Packages[0].Version; got != "compatible" {
+		t.Fatalf("expected fuzzy version intent to remain unchanged, got %q", got)
+	}
+
+	data, err := SerializeManifest(manifest)
+	if err != nil {
+		t.Fatalf("serialize manifest failed: %v", err)
+	}
+
+	reparsed, err := ParseManifest(data)
+	if err != nil {
+		t.Fatalf("reparse manifest failed: %v", err)
+	}
+	if got, want := reparsed.Environment.CompatiblePlatforms, []string{"fabric", "mcdr", "sinytra"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("round-trip environment compatible platforms mismatch: got %#v want %#v", got, want)
+	}
+}
+
+func TestManifestRejectsIncompatibleEnvironmentCompatiblePlatforms(t *testing.T) {
+	manifest := ManifestDefaults()
+	manifest.Environment.Platform = "fabric"
+	manifest.Environment.CompatiblePlatforms = []string{"neoforge"}
+
+	err := ValidateManifest(manifest)
+	if err == nil {
+		t.Fatal("expected manifest validation to reject incompatible environment compatible platforms")
+	}
+	if got := err.Error(); got == "" || !bytes.Contains([]byte(got), []byte("environment.compatible_platforms")) {
+		t.Fatalf("expected compatible-platform validation error, got %v", err)
+	}
+}
+
 func TestManifestBundlesRemainSeparateFromPackages(t *testing.T) {
 	manifestText := []byte(`
 [format]
@@ -292,6 +363,9 @@ func TestManifestDefaults(t *testing.T) {
 	if manifest.Environment.Platform != "none" {
 		t.Fatalf("expected default platform none, got %q", manifest.Environment.Platform)
 	}
+	if len(manifest.Environment.CompatiblePlatforms) != 0 {
+		t.Fatalf("expected no compatible platforms by default, got %#v", manifest.Environment.CompatiblePlatforms)
+	}
 	if manifest.Layout.ModsDir != "mods" {
 		t.Fatalf("expected mods_dir mods, got %q", manifest.Layout.ModsDir)
 	}
@@ -316,5 +390,72 @@ func TestManifestDefaults(t *testing.T) {
 
 	if err := ValidateManifest(manifest); err != nil {
 		t.Fatalf("default manifest should validate: %v", err)
+	}
+}
+
+func TestManifestPreservesCompatiblePlatforms(t *testing.T) {
+	manifestText := []byte(`
+[format]
+version = "v1"
+
+[environment]
+game_version = "1.21.1"
+platform = "neoforge"
+platform_version = "21.1.0"
+compatible_platforms = ["fabric", "mcdr", "sinytra"]
+
+[layout]
+mods_dir = "mods"
+plugins_dir = "plugins"
+config_dir = "config"
+
+[policy]
+managed_roots = ["mods", "plugins"]
+unmanaged_paths = []
+`)
+
+	manifest, err := ParseManifest(manifestText)
+	if err != nil {
+		t.Fatalf("parse manifest failed: %v", err)
+	}
+
+	want := []string{"fabric", "mcdr", "sinytra"}
+	if len(manifest.Environment.CompatiblePlatforms) != len(want) {
+		t.Fatalf("expected %d compatible platforms, got %d", len(want), len(manifest.Environment.CompatiblePlatforms))
+	}
+	for i, platform := range want {
+		if manifest.Environment.CompatiblePlatforms[i] != platform {
+			t.Fatalf("compatible platform %d mismatch: got %q want %q", i, manifest.Environment.CompatiblePlatforms[i], platform)
+		}
+	}
+
+	data, err := SerializeManifest(manifest)
+	if err != nil {
+		t.Fatalf("serialize manifest failed: %v", err)
+	}
+	if !bytes.Contains(data, []byte("compatible_platforms = [\"fabric\", \"mcdr\", \"sinytra\"]")) {
+		t.Fatalf("serialized manifest missing compatible_platforms: %s", data)
+	}
+
+	reparsed, err := ParseManifest(data)
+	if err != nil {
+		t.Fatalf("reparse manifest failed: %v", err)
+	}
+	if len(reparsed.Environment.CompatiblePlatforms) != len(want) {
+		t.Fatalf("expected %d compatible platforms after round trip, got %d", len(want), len(reparsed.Environment.CompatiblePlatforms))
+	}
+}
+
+func TestManifestRejectsImpossibleCompatiblePlatformCombination(t *testing.T) {
+	manifest := ManifestDefaults()
+	manifest.Environment.Platform = "fabric"
+	manifest.Environment.CompatiblePlatforms = []string{"sinytra"}
+
+	err := ValidateManifest(manifest)
+	if err == nil {
+		t.Fatal("expected invalid compatible platform combination to fail")
+	}
+	if got := err.Error(); got == "" || !bytes.Contains([]byte(got), []byte("sinytra")) {
+		t.Fatalf("expected error to mention sinytra incompatibility, got %q", got)
 	}
 }

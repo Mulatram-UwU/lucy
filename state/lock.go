@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/mclucy/lucy/types"
 )
 
 // Lock represents Lucy's exact resolved state snapshot.
@@ -90,6 +92,9 @@ func ValidateLock(l Lock) error {
 	if l.Platform == "" {
 		return NewStateError(LockFile, ErrMalformed, "platform", "platform is required")
 	}
+	if err := validateManifestPlatform(l.Platform); err != nil {
+		return NewStateError(LockFile, ErrMalformed, "platform", err.Error())
+	}
 	if l.PlatformVersion == "" {
 		return NewStateError(LockFile, ErrMalformed, "platform_version", "platform_version is required")
 	}
@@ -120,6 +125,14 @@ func (l *Lock) Unmarshal(data []byte) error {
 func validateLockedPackage(pkg LockedPackage) error {
 	if pkg.ID == "" {
 		return fmt.Errorf("id is required")
+	}
+	parts := strings.Split(pkg.ID, "/")
+	if len(parts) != 2 || strings.TrimSpace(parts[0]) == "" || strings.TrimSpace(parts[1]) == "" {
+		return fmt.Errorf("id must use platform/name format")
+	}
+	platform := types.Platform(parts[0])
+	if !platform.Valid() || platform == types.PlatformAny || platform == types.PlatformMinecraft || platform == types.PlatformUnknown {
+		return fmt.Errorf("invalid package platform %q", parts[0])
 	}
 	if pkg.Version == "" {
 		return fmt.Errorf("version is required")

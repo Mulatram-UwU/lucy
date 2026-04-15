@@ -33,6 +33,12 @@ type ManifestEnvironment struct {
 	GameVersion     string `toml:"game_version"`
 	Platform        string `toml:"platform"`
 	PlatformVersion string `toml:"platform_version"`
+	// CompatiblePlatforms lists extra compatibility layers or controller surfaces
+	// that can coexist with the primary runtime without replacing it.
+	//
+	// Example: a NeoForge runtime with Sinytra and MCDR support can be modeled as
+	// platform="neoforge" plus compatible_platforms=["fabric", "mcdr", "sinytra"].
+	CompatiblePlatforms []string `toml:"compatible_platforms"`
 }
 
 type ManifestSources struct {
@@ -121,9 +127,10 @@ func ManifestDefaults() Manifest {
 			Version: SupportedVersion,
 		},
 		Environment: ManifestEnvironment{
-			GameVersion:     "",
-			Platform:        string(types.PlatformNone),
-			PlatformVersion: "",
+			GameVersion:         "",
+			Platform:            string(types.PlatformNone),
+			PlatformVersion:     "",
+			CompatiblePlatforms: []string{},
 		},
 		Sources: ManifestSources{
 			Custom: []CustomSource{},
@@ -150,7 +157,7 @@ func ValidateManifest(m Manifest) error {
 		return versionStateError(ManifestFile, "format.version", m.Format.Version, ErrMalformed)
 	}
 
-	if err := validateManifestPlatform(m.Environment.Platform); err != nil {
+	if err := ValidateManifestEnvironment(m.Environment); err != nil {
 		return err
 	}
 	if m.Layout.ModsDir == "" {
@@ -193,6 +200,30 @@ func ValidateManifest(m Manifest) error {
 	return nil
 }
 
+func ValidateManifestEnvironment(env ManifestEnvironment) error {
+	platform := strings.TrimSpace(env.Platform)
+	if err := validateManifestPlatform(platform); err != nil {
+		return err
+	}
+	if err := validateCompatiblePlatforms(platform, env.CompatiblePlatforms); err != nil {
+		return err
+	}
+	return nil
+}
+
+func CompatiblePlatformOptions(primary string) []string {
+	switch types.Platform(strings.TrimSpace(primary)) {
+	case types.PlatformNeoforge:
+		return []string{"fabric", "mcdr", "sinytra"}
+	case types.PlatformFabric, types.PlatformForge, types.PlatformNone:
+		return []string{"mcdr"}
+	case types.PlatformMCDR:
+		return nil
+	default:
+		return nil
+	}
+}
+
 func validateManifestPlatform(value string) error {
 	platform := types.Platform(strings.TrimSpace(value))
 	if platform == "" {
@@ -205,6 +236,51 @@ func validateManifestPlatform(value string) error {
 	default:
 		return fmt.Errorf("invalid environment.platform %q", value)
 	}
+}
+
+func validateCompatiblePlatforms(primary string, platforms []string) error {
+	allowed := CompatiblePlatformOptions(primary)
+	allowedSet := make(map[string]struct{}, len(allowed))
+	for _, platform := range allowed {
+		allowedSet[platform] = struct{}{}
+	}
+
+	seen := make(map[string]struct{}, len(platforms))
+	for i, raw := range platforms {
+		platform := strings.TrimSpace(raw)
+		if platform == "" {
+			return fmt.Errorf("environment.compatible_platforms[%d] is required", i)
+		}
+		if platform == strings.TrimSpace(primary) {
+			return fmt.Errorf("environment.compatible_platforms must not repeat primary platform %q", platform)
+		}
+		if _, ok := seen[platform]; ok {
+			return fmt.Errorf("environment.compatible_platforms contains duplicate %q", platform)
+		}
+		seen[platform] = struct{}{}
+		if _, ok := allowedSet[platform]; !ok {
+			allowedText := "none"
+			if len(allowed) > 0 {
+				allowedText = strings.Join(allowed, ", ")
+			}
+			return fmt.Errorf("environment.compatible_platforms %q is incompatible with primary platform %q; allowed: %s", platform, primary, allowedText)
+		}
+	}
+
+	if slicesContains(platforms, "sinytra") && !slicesContains(platforms, "fabric") {
+		return fmt.Errorf("environment.compatible_platforms " + `"sinytra" requires "fabric" compatibility to also be selected`)
+	}
+
+	return nil
+}
+
+func slicesContains(values []string, want string) bool {
+	for _, value := range values {
+		if strings.TrimSpace(value) == want {
+			return true
+		}
+	}
+	return false
 }
 
 func validateManifestPackage(pkg ManifestPackage) error {
@@ -281,6 +357,7 @@ func (m Manifest) Marshal() ([]byte, error) {
 	writeTomlStringField(&buf, "game_version", m.Environment.GameVersion)
 	writeTomlStringField(&buf, "platform", m.Environment.Platform)
 	writeTomlStringField(&buf, "platform_version", m.Environment.PlatformVersion)
+	writeTomlStringSliceField(&buf, "compatible_platforms", m.Environment.CompatiblePlatforms)
 
 	buf.WriteString("\n")
 	writeTomlSectionHeader(&buf, "sources")
@@ -330,7 +407,35 @@ func (m Manifest) Marshal() ([]byte, error) {
 }
 
 func (m *Manifest) Unmarshal(data []byte) error {
-	return toml.Unmarshal(data, m)
+	if err := toml.Unmarshal(data, m); err != nil {
+		return err
+	}
+	normalizeManifest(m)
+	return nil
+}
+
+func normalizeManifest(m *Manifest) {
+	if m == nil {
+		return
+	}
+	if m.Environment.CompatiblePlatforms == nil {
+		m.Environment.CompatiblePlatforms = []string{}
+	}
+	if m.Sources.Custom == nil {
+		m.Sources.Custom = []CustomSource{}
+	}
+	if m.Policy.ManagedRoots == nil {
+		m.Policy.ManagedRoots = []string{}
+	}
+	if m.Policy.UnmanagedPaths == nil {
+		m.Policy.UnmanagedPaths = []string{}
+	}
+	if m.Packages == nil {
+		m.Packages = []ManifestPackage{}
+	}
+	if m.Bundles == nil {
+		m.Bundles = []ManifestBundle{}
+	}
 }
 
 func trimTrailingBlankLine(buf *bytes.Buffer) {
