@@ -20,6 +20,16 @@ var normalizedRuntimeIDByName = map[string]types.RuntimeNodeID{
 	"neoforge server": RuntimeNodeNeoforge,
 	"mcdr":            RuntimeNodeMCDR,
 	"mcdr plugin":     RuntimeNodeMCDR,
+	"paper":           RuntimeNodePaper,
+	"spigot":          RuntimeNodeSpigot,
+	"bukkit":          RuntimeNodeBukkit,
+	"folia":           RuntimeNodeFolia,
+	"leaves":          RuntimeNodeLeaves,
+	"velocity":        RuntimeNodeVelocity,
+	"bungeecord":      RuntimeNodeBungeecord,
+	"bungee":          RuntimeNodeBungeecord,
+	"waterfall":       RuntimeNodeWaterfall,
+	"sponge":          RuntimeNodeSponge,
 }
 
 func NormalizeRuntimeID(name string) types.RuntimeNodeID {

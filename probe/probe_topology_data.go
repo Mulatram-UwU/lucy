@@ -17,6 +17,8 @@ const (
 	RuntimeNodeSpigot     types.RuntimeNodeID = "spigot"
 	RuntimeNodeBukkit     types.RuntimeNodeID = "bukkit"
 	RuntimeNodeFolia      types.RuntimeNodeID = "folia"
+	RuntimeNodeLeaves     types.RuntimeNodeID = "leaves"
+	RuntimeNodeSponge     types.RuntimeNodeID = "sponge"
 	RuntimeNodeArclight   types.RuntimeNodeID = "arclight"
 	RuntimeNodeYouer      types.RuntimeNodeID = "youer"
 	RuntimeNodeVelocity   types.RuntimeNodeID = "velocity"
@@ -99,6 +101,23 @@ var defaultRegistryEntries = []RegistryEntry{
 		},
 	},
 	{
+		NodeID:           RuntimeNodeLeaves,
+		Role:             types.RuntimeRolePluginCore,
+		IdentityPlatform: types.PlatformAny,
+		RiskLevel:        types.RiskNone,
+		Capabilities: []types.RuntimeCapability{
+			types.CapabilityBukkitPlugins,
+		},
+	},
+	{
+		NodeID:           RuntimeNodeSponge,
+		Role:             types.RuntimeRolePluginCore,
+		IdentityPlatform: types.PlatformAny,
+		Capabilities: []types.RuntimeCapability{
+			types.CapabilitySpongePlugins,
+		},
+	},
+	{
 		NodeID:           RuntimeNodeArclight,
 		Role:             types.RuntimeRoleHybrid,
 		IdentityPlatform: types.PlatformAny,
@@ -122,6 +141,7 @@ var defaultRegistryEntries = []RegistryEntry{
 		IdentityPlatform: types.PlatformAny,
 		Capabilities: []types.RuntimeCapability{
 			types.CapabilityProxying,
+			types.CapabilityVelocityPlugins,
 		},
 	},
 	{
@@ -130,6 +150,7 @@ var defaultRegistryEntries = []RegistryEntry{
 		IdentityPlatform: types.PlatformAny,
 		Capabilities: []types.RuntimeCapability{
 			types.CapabilityProxying,
+			types.CapabilityBungeecordPlugins,
 		},
 	},
 	{
@@ -156,6 +177,11 @@ var defaultRegistryEntries = []RegistryEntry{
 		PolicyEdges: []RegistryEdge{
 			{
 				TargetNodeID: RuntimeNodeForge,
+				Kind:         types.EdgeBridges,
+				Risk:         types.RiskHigh,
+			},
+			{
+				TargetNodeID: RuntimeNodeNeoforge,
 				Kind:         types.EdgeBridges,
 				Risk:         types.RiskHigh,
 			},
