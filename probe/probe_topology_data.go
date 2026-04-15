@@ -159,6 +159,7 @@ var defaultRegistryEntries = []RegistryEntry{
 		IdentityPlatform: types.PlatformAny,
 		Capabilities: []types.RuntimeCapability{
 			types.CapabilityProxying,
+			types.CapabilityBungeecordPlugins,
 		},
 	},
 	{
