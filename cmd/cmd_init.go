@@ -13,6 +13,7 @@ const (
 	flagInitYesName      = "yes"
 	flagInitConflictName = "conflict"
 	flagInitWorkDirName  = "work-dir"
+	flagInitGameVersion  = "game-version"
 )
 
 var initCmd = &cobra.Command{
@@ -31,6 +32,7 @@ func init() {
 	initCmd.Flags().BoolP(flagInitYesName, "y", false, "Non-interactive mode: accept all defaults without prompting")
 	initCmd.Flags().StringP(flagInitConflictName, "c", "preserve", "Conflict mode for existing files: preserve, abort, overwrite")
 	initCmd.Flags().String(flagInitWorkDirName, "", "Override working directory (for testing)")
+	initCmd.Flags().String(flagInitGameVersion, "1.21", "Game version for non-interactive init (e.g., 1.21.4)")
 	_ = initCmd.Flags().MarkHidden(flagInitWorkDirName)
 	rootCmd.AddCommand(initCmd)
 }
@@ -48,9 +50,14 @@ func actionInit(cmd *cobra.Command, _ []string) error {
 	}
 
 	yes, _ := cmd.Flags().GetBool(flagInitYesName)
+	gameVersion, _ := cmd.Flags().GetString(flagInitGameVersion)
 
 	flowState := lucyinit.NewInitFlowState(workDir)
 	flowState.ConflictResolution = conflictMode
+
+	if gameVersion != "" && gameVersion != "1.21" && flowState.GameVersion == "" {
+		flowState.GameVersion = gameVersion
+	}
 
 	if yes {
 		return runNonInteractiveInit(workDir, flowState)
@@ -84,8 +91,12 @@ func parseConflictMode(s string) (lucyinit.ConflictMode, error) {
 }
 
 func runNonInteractiveInit(workDir string, s *lucyinit.InitFlowState) error {
+	if s.GameVersion == "" {
+		s.GameVersion = "1.21"
+	}
+
 	if !lucyinit.CanProceed(s) {
-		return fmt.Errorf("cannot proceed: game version is required for non-interactive init (set via manifest or provide --game-version flag)")
+		return fmt.Errorf("cannot proceed: managed roots are required for non-interactive init (run interactively or provide explicit roots)")
 	}
 	s.Confirmed = true
 	return writeInitResult(workDir, s)
