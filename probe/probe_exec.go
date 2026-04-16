@@ -11,10 +11,9 @@ import (
 
 	"github.com/mclucy/lucy/logger"
 	"github.com/mclucy/lucy/probe/internal/detector"
+	"github.com/mclucy/lucy/prompt"
 	"github.com/mclucy/lucy/tools"
 	"github.com/mclucy/lucy/types"
-
-	"charm.land/huh/v2"
 )
 
 const noteIgnorePath = "Some modding platforms are located from the libraries directory. " +
@@ -157,25 +156,21 @@ func promptSelectExecutable(
 		title = title + "\n" + noteText
 	}
 
-	options := make([]huh.Option[int], 0, len(executables))
-	for i, exec := range executables {
-		options = append(options, huh.NewOption(executableLabel(exec), i))
+	indices := make([]int, len(executables))
+	for i := range executables {
+		indices[i] = i
 	}
 
-	form := huh.NewForm(
-		huh.NewGroup(
-			huh.NewSelect[int]().
-				Title(title).
-				Options(options...).
-				Filtering(true).
-				Height(10).
-				Value(&selection),
-		),
+	selected, err := prompt.Select(
+		title,
+		indices,
+		func(index int) string { return executableLabel(executables[index]) },
 	)
-	if err := form.Run(); err != nil {
+	if err != nil {
 		logger.ShowWarn(err)
+		return selection
 	}
-	return selection
+	return selected
 }
 
 func generateNotes(notes ...string) string {
