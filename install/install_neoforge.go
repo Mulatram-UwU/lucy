@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"charm.land/huh/v2"
 	"github.com/mclucy/lucy/probe"
+	"github.com/mclucy/lucy/prompt"
 	"github.com/mclucy/lucy/types"
 )
 
@@ -235,34 +235,23 @@ func promptSelectMinecraftVersionForNeoForge() (version string) {
 		}
 	}
 
-	var installLatest bool
-	options := huh.NewOptions(gameVersions...)
-	err = huh.NewForm(
-		huh.NewGroup(
-			huh.NewConfirm().
-				Title("No current Minecraft installation found.").
-				Description("Do you want to install NeoForge with its latest supported Minecraft version?").
-				Affirmative("Yes, proceed").
-				Negative("No, select a game version").
-				Value(&installLatest),
-		),
-	).Run()
+	installLatest, err := prompt.Confirm(
+		"No current Minecraft installation found.",
+		"Do you want to install NeoForge with its latest supported Minecraft version?",
+		"Yes, proceed",
+		"No, select a game version",
+	)
 	if err != nil {
 		return "none"
 	}
 	if installLatest {
 		return gameVersions[0]
 	}
-	err = huh.NewForm(
-		huh.NewGroup(
-			huh.NewSelect[string]().
-				Title("Select a Minecraft version for NeoForge").
-				Options(options...).
-				Filtering(true).
-				Height(10).
-				Value(&version),
-		).WithHide(installLatest),
-	).Run()
+	version, err = prompt.Select(
+		"Select a Minecraft version for NeoForge",
+		gameVersions,
+		func(v string) string { return v },
+	)
 	if err != nil {
 		return "none"
 	}
