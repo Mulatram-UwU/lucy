@@ -24,13 +24,13 @@ const multiThreadThreshold = 10
 
 // getExecutableInfo uses the new detector-based architecture to find server executables
 func buildExecutableInfo() *types.RuntimeInfo {
-	valid := make([]*types.RuntimeInfo, 0)
+	valid := make([]*detector.ExecutableEvidence, 0)
 	workPath := workPath()
 	for _, evidence := range detector.ForgeInstallationRuntimes(workPath) {
-		valid = append(valid, materializeRuntimeInfo(evidence))
+		valid = append(valid, evidence)
 	}
 	for _, evidence := range detector.NeoForgeInstallationRuntimes(workPath) {
-		valid = append(valid, materializeRuntimeInfo(evidence))
+		valid = append(valid, evidence)
 	}
 
 	// Layered search
@@ -45,7 +45,7 @@ func buildExecutableInfo() *types.RuntimeInfo {
 		if candidates == nil || candidates.IsEmpty() || candidates.IsAmbiguous() {
 			continue
 		}
-		valid = append(valid, materializeRuntimeInfo(candidates.Single()))
+		valid = append(valid, candidates.Single())
 	}
 
 	// 2. Forge/Fabric installation paths
@@ -80,7 +80,7 @@ func buildExecutableInfo() *types.RuntimeInfo {
 		if candidates == nil || candidates.IsEmpty() || candidates.IsAmbiguous() {
 			continue
 		}
-		valid = append(valid, materializeRuntimeInfo(candidates.Single()))
+		valid = append(valid, candidates.Single())
 	}
 
 	// 3. Everything under libraries
@@ -99,7 +99,7 @@ func buildExecutableInfo() *types.RuntimeInfo {
 						return
 					}
 					mu.Lock()
-					valid = append(valid, materializeRuntimeInfo(candidates.Single()))
+					valid = append(valid, candidates.Single())
 					mu.Unlock()
 					wg.Done()
 				}(jarPath)
@@ -111,7 +111,7 @@ func buildExecutableInfo() *types.RuntimeInfo {
 				if candidates == nil || candidates.IsEmpty() || candidates.IsAmbiguous() {
 					continue
 				}
-				valid = append(valid, materializeRuntimeInfo(candidates.Single()))
+				valid = append(valid, candidates.Single())
 			}
 		}
 	}
@@ -125,12 +125,16 @@ func buildExecutableInfo() *types.RuntimeInfo {
 		logger.Info("no server executable found")
 		return types.NoExecutable
 	case 1:
-		return valid[0]
+		return materializeRuntimeInfo(valid[0])
 	default:
+		runtimes := make([]*types.RuntimeInfo, 0, len(valid))
+		for _, evidence := range valid {
+			runtimes = append(runtimes, materializeRuntimeInfo(evidence))
+		}
 		choice := promptSelectExecutable(
-			valid, []string{noteIgnorePath},
+			runtimes, []string{noteIgnorePath},
 		)
-		return valid[choice]
+		return materializeRuntimeInfo(valid[choice])
 	}
 }
 

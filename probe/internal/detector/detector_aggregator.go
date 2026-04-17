@@ -113,6 +113,7 @@ func Packages(filePath string) (res []types.Package) {
 			))
 			return nil
 		}
+		res = aggregateBukkitFamilyPackages(res)
 	case ".pyz", ".mcdr":
 		McdrPlugin(filePath)
 	default:
