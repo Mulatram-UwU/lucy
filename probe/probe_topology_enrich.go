@@ -238,7 +238,7 @@ func inferHostTopologyFromAttachedBridgePackages(
 			continue
 		}
 
-		entry, ok := LookupByPlatform(types.PlatformFabric)
+		entry, ok := FindEntry(RuntimeNodeFabric)
 		if !ok {
 			return nil
 		}

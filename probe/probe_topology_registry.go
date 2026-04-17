@@ -20,24 +20,14 @@ type RegistryEdge struct {
 }
 
 type RuntimeRegistry struct {
-	byID       map[types.RuntimeNodeID]RegistryEntry
-	byPlatform map[types.Platform]RegistryEntry
+	byID map[types.RuntimeNodeID]RegistryEntry
 }
 
 var DefaultRegistry = NewRuntimeRegistry(defaultRegistryEntries)
 
-var nodeIDToPlatform = map[types.RuntimeNodeID]types.Platform{
-	RuntimeNodeMinecraft: types.PlatformMinecraft,
-	RuntimeNodeFabric:    types.PlatformFabric,
-	RuntimeNodeForge:     types.PlatformForge,
-	RuntimeNodeNeoforge:  types.PlatformNeoforge,
-	RuntimeNodeMCDR:      types.PlatformMCDR,
-}
-
 func NewRuntimeRegistry(entries []RegistryEntry) RuntimeRegistry {
 	registry := RuntimeRegistry{
-		byID:       make(map[types.RuntimeNodeID]RegistryEntry, len(entries)),
-		byPlatform: make(map[types.Platform]RegistryEntry, len(entries)),
+		byID: make(map[types.RuntimeNodeID]RegistryEntry, len(entries)),
 	}
 
 	for _, entry := range entries {
@@ -50,11 +40,6 @@ func NewRuntimeRegistry(entries []RegistryEntry) RuntimeRegistry {
 		}
 
 		registry.byID[stored.NodeID] = stored
-		if platform, ok := nodeIDToPlatform[stored.NodeID]; ok {
-			if _, exists := registry.byPlatform[platform]; !exists {
-				registry.byPlatform[platform] = stored
-			}
-		}
 	}
 
 	return registry
@@ -69,21 +54,8 @@ func (r RuntimeRegistry) FindEntry(id types.RuntimeNodeID) (RegistryEntry, bool)
 	return cloneEntry(entry), true
 }
 
-func (r RuntimeRegistry) LookupByPlatform(p types.Platform) (RegistryEntry, bool) {
-	entry, ok := r.byPlatform[p]
-	if !ok {
-		return RegistryEntry{}, false
-	}
-
-	return cloneEntry(entry), true
-}
-
 func FindEntry(id types.RuntimeNodeID) (RegistryEntry, bool) {
 	return DefaultRegistry.FindEntry(id)
-}
-
-func LookupByPlatform(p types.Platform) (RegistryEntry, bool) {
-	return DefaultRegistry.LookupByPlatform(p)
 }
 
 // BuildTopologyFromEntry constructs a RuntimeTopology with a single primary node
