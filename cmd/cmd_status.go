@@ -280,8 +280,10 @@ func statusRuntimePlatformLabel(
 ) string {
 	label := ""
 	if hasPrimaryNode {
-		if platform := types.DeclaredModdingPlatformForNode(primaryNode.ID); platform != types.PlatformNone && platform != types.PlatformMinecraft {
-			label = platform.Title()
+		if primaryNode.Role != types.RuntimeRoleHybrid {
+			if platform := types.DeclaredModdingPlatformForNode(primaryNode.ID); platform != types.PlatformNone && platform != types.PlatformMinecraft {
+				label = platform.Title()
+			}
 		}
 
 		if label == "" {
