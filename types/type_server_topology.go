@@ -54,10 +54,9 @@ const (
 )
 
 type CompatResult struct {
-	Verdict   CompatVerdict    `json:"verdict"`
-	Reason    string           `json:"reason"`
-	Detail    string           `json:"detail"`
-	RiskLevel RuntimeRiskLevel `json:"risk_level"`
+	Verdict CompatVerdict `json:"verdict"`
+	Reason  string        `json:"reason"`
+	Detail  string        `json:"detail"`
 }
 
 // CompatPolicy describes the compatibility relationship between a server runtime
@@ -69,8 +68,6 @@ type CompatPolicy struct {
 	PackageEcosystem RuntimeCapability `json:"package_ecosystem"`
 	// Verdict is the base verdict for this relationship (without bridge layers).
 	Verdict CompatVerdict `json:"verdict"`
-	// Risk is the risk level for this combination.
-	Risk RuntimeRiskLevel `json:"risk"`
 	// Reason is a machine-readable code for why this verdict was reached.
 	Reason string `json:"reason"`
 }
@@ -102,10 +99,9 @@ const (
 )
 
 type RuntimeEdge struct {
-	From RuntimeNodeID    `json:"from"`
-	To   RuntimeNodeID    `json:"to"`
-	Verb RuntimeEdgeVerb  `json:"verb"`
-	Risk RuntimeRiskLevel `json:"risk"`
+	From RuntimeNodeID   `json:"from"`
+	To   RuntimeNodeID   `json:"to"`
+	Verb RuntimeEdgeVerb `json:"verb"`
 }
 
 type RuntimeTopology struct {
