@@ -38,7 +38,7 @@ func EvaluateCompatibility(topology *types.RuntimeTopology, requiredCapability t
 	// be evaluated through the bridge path (which accounts for risk level).
 	bridgeTargets := make(map[types.RuntimeNodeID]struct{}, len(topology.Edges))
 	for _, edge := range topology.Edges {
-		if edge.Kind == types.EdgeBridges {
+		if edge.Verb == types.EdgeBridges {
 			bridgeTargets[edge.To] = struct{}{}
 		}
 	}
@@ -58,7 +58,7 @@ func EvaluateCompatibility(topology *types.RuntimeTopology, requiredCapability t
 	}
 
 	for _, edge := range topology.Edges {
-		if edge.Kind != types.EdgeBridges {
+		if edge.Verb != types.EdgeBridges {
 			continue
 		}
 

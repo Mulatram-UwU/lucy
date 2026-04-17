@@ -274,7 +274,7 @@ func buildBukkitLineageEdge(from types.RuntimeNodeID, to types.RuntimeNodeID) ty
 		// The topology model does not have a dedicated extends edge yet. EdgeAdapts
 		// is the closest existing relation for "this runtime layer is built on top of
 		// that implementation layer" until the shared edge vocabulary grows.
-		Kind: types.EdgeAdapts,
+		Verb: types.EdgeAdapts,
 		Risk: types.RiskNone,
 	}
 }

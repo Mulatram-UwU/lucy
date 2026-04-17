@@ -89,19 +89,20 @@ func (n RuntimeNode) HasCapability(c RuntimeCapability) bool {
 	return slices.Contains(n.Capabilities, c)
 }
 
-type RuntimeEdgeKind string
+// RuntimeEdgeVerb describes the type of relationship between two nodes in the topology.
+type RuntimeEdgeVerb string
 
 const (
-	EdgeHosts   RuntimeEdgeKind = "hosts"
-	EdgeBridges RuntimeEdgeKind = "bridges"
-	EdgeRoutes  RuntimeEdgeKind = "routes"
-	EdgeAdapts  RuntimeEdgeKind = "adapts"
+	EdgeHosts   RuntimeEdgeVerb = "hosts"
+	EdgeBridges RuntimeEdgeVerb = "bridges"
+	EdgeRoutes  RuntimeEdgeVerb = "routes"
+	EdgeAdapts  RuntimeEdgeVerb = "adapts"
 )
 
 type RuntimeEdge struct {
 	From RuntimeNodeID    `json:"from"`
 	To   RuntimeNodeID    `json:"to"`
-	Kind RuntimeEdgeKind  `json:"kind"`
+	Verb RuntimeEdgeVerb  `json:"verb"`
 	Risk RuntimeRiskLevel `json:"risk"`
 }
 

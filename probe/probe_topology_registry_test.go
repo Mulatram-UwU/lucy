@@ -110,7 +110,7 @@ func TestBuildTopologyFromEntry_WithPolicyEdges(t *testing.T) {
 		t.Errorf("expected 1 edge, got %d", len(topo.Edges))
 	}
 	edge := topo.Edges[0]
-	if edge.From != RuntimeNodeConnector || edge.To != RuntimeNodeFabric || edge.Kind != types.EdgeBridges {
+	if edge.From != RuntimeNodeConnector || edge.To != RuntimeNodeFabric || edge.Verb != types.EdgeBridges {
 		t.Errorf("unexpected edge: %+v", edge)
 	}
 }

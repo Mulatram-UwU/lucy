@@ -434,7 +434,7 @@ func statusEffectiveRiskLevel(
 	}
 
 	for _, edge := range topology.EdgesFrom(topology.PrimaryNode) {
-		if edge.Kind != types.EdgeBridges && edge.Kind != types.EdgeRoutes && edge.Kind != types.EdgeAdapts {
+		if edge.Verb != types.EdgeBridges && edge.Verb != types.EdgeRoutes && edge.Verb != types.EdgeAdapts {
 			continue
 		}
 		if edge.Risk > effective {
@@ -443,7 +443,7 @@ func statusEffectiveRiskLevel(
 	}
 
 	for _, edge := range topology.EdgesTo(topology.PrimaryNode) {
-		if edge.Kind != types.EdgeBridges && edge.Kind != types.EdgeRoutes && edge.Kind != types.EdgeAdapts {
+		if edge.Verb != types.EdgeBridges && edge.Verb != types.EdgeRoutes && edge.Verb != types.EdgeAdapts {
 			continue
 		}
 		if edge.Risk > effective {
@@ -489,7 +489,7 @@ func runtimeTopologyTargets(topology *types.RuntimeTopology, nodeID types.Runtim
 	targets := make([]string, 0, 2)
 	seen := make(map[string]struct{}, 2)
 	for _, edge := range topology.EdgesFrom(nodeID) {
-		if edge.Kind != types.EdgeBridges && edge.Kind != types.EdgeRoutes && edge.Kind != types.EdgeAdapts {
+		if edge.Verb != types.EdgeBridges && edge.Verb != types.EdgeRoutes && edge.Verb != types.EdgeAdapts {
 			continue
 		}
 		if target, ok := topology.FindNode(edge.To); ok {
