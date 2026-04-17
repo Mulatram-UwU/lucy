@@ -107,6 +107,7 @@ func BuildTopologyFromEntry(entry RegistryEntry) *types.RuntimeTopology {
 
 	applyDeclarativeConnections(topology, internaltopology.DefaultConnectionRegistry)
 	NormalizeTopology(topology)
+	FoldTopologyRisk(topology)
 
 	return topology
 }
