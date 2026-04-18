@@ -436,26 +436,14 @@ func statusEffectiveRiskLevel(
 	}
 
 	for _, edge := range topology.EdgesFrom(topology.PrimaryNode) {
-		switch edge.Verb {
-		case types.EdgeHosts, types.EdgeImplements, types.EdgeModifies, types.EdgeProxies:
-			// keep - these can carry meaningful risk
-		default:
-			continue
-		}
-		if edge.Risk > effective {
-			effective = edge.Risk
+		if target, ok := topology.FindNode(edge.To); ok && target.RiskLevel > effective {
+			effective = target.RiskLevel
 		}
 	}
 
 	for _, edge := range topology.EdgesTo(topology.PrimaryNode) {
-		switch edge.Verb {
-		case types.EdgeHosts, types.EdgeImplements, types.EdgeModifies, types.EdgeProxies:
-			// keep - these can carry meaningful risk
-		default:
-			continue
-		}
-		if edge.Risk > effective {
-			effective = edge.Risk
+		if source, ok := topology.FindNode(edge.From); ok && source.RiskLevel > effective {
+			effective = source.RiskLevel
 		}
 	}
 
