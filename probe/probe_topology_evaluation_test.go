@@ -53,7 +53,7 @@ func TestEvaluateCompatibility_Incompatible(t *testing.T) {
 func TestEvaluateCompatibility_IndirectHostedCapabilityIsDegraded(t *testing.T) {
 	host := makeNode("neoforge")
 	hosted := makeNode("sinytra", types.CapabilityFabricMods)
-	edge := makeEdge("neoforge", "sinytra", types.EdgeHosts, 0)
+	edge := makeEdge("neoforge", "sinytra", types.EdgeHosts)
 	topo := makeTopology("neoforge", []types.RuntimeNode{host, hosted}, []types.RuntimeEdge{edge})
 	result := EvaluateCompatibility(topo, types.CapabilityFabricMods)
 	if result.Verdict != types.CompatDegraded {

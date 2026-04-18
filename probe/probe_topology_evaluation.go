@@ -21,8 +21,9 @@ import (
 //
 // EvaluateCompatibility evaluates whether a server runtime (described by topology)
 // can support the requested ecosystem. Verdict encodes direct support, indirect/hosted
-// support, incompatibility, or unresolved topology. Never returns nil - always returns
-// a deterministic result.
+// support, incompatibility, or unresolved topology. Indirect support is reported as
+// CompatDegraded, while runtime risk remains a node-level topology concern. Never
+// returns nil - always returns a deterministic result.
 func EvaluateCompatibility(topology *types.RuntimeTopology, requiredCapability types.RuntimeCapability) types.CompatResult {
 	if topology == nil || !topology.Resolved() {
 		return types.CompatResult{

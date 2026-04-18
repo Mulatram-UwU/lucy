@@ -24,7 +24,7 @@ func TestNormalizeTopology_DeduplicatesNodes(t *testing.T) {
 }
 
 func TestNormalizeTopology_DeduplicatesEdges(t *testing.T) {
-	e := makeEdge("a", "b", types.EdgeHosts, 0)
+	e := makeEdge("a", "b", types.EdgeHosts)
 	topo := makeTopology(
 		"a",
 		[]types.RuntimeNode{makeNode("a"), makeNode("b")},
@@ -59,9 +59,9 @@ func TestNormalizeTopology_SortsEdges(t *testing.T) {
 		"a",
 		[]types.RuntimeNode{makeNode("a"), makeNode("b"), makeNode("c")},
 		[]types.RuntimeEdge{
-			makeEdge("b", "c", types.EdgeHosts, 0),
-			makeEdge("a", "c", types.EdgeHosts, 0),
-			makeEdge("a", "b", types.EdgeHosts, 0),
+			makeEdge("b", "c", types.EdgeHosts),
+			makeEdge("a", "c", types.EdgeHosts),
+			makeEdge("a", "b", types.EdgeHosts),
 		},
 	)
 	NormalizeTopology(topo)
@@ -82,7 +82,7 @@ func TestFoldTopologyRisk_PropagatesMaximumRiskAcrossConnectedNodes(t *testing.T
 			{ID: "a", RiskLevel: types.RiskNone},
 			{ID: "b", RiskLevel: types.RiskHigh},
 		},
-		[]types.RuntimeEdge{makeEdge("a", "b", types.EdgeHosts, 0)},
+		[]types.RuntimeEdge{makeEdge("a", "b", types.EdgeHosts)},
 	)
 
 	FoldTopologyRisk(topo)
@@ -121,8 +121,8 @@ func TestFoldTopologyRisk_TransitivePropagation(t *testing.T) {
 			{ID: "c", RiskLevel: types.RiskHigh},
 		},
 		[]types.RuntimeEdge{
-			makeEdge("a", "b", types.EdgeHosts, 0),
-			makeEdge("b", "c", types.EdgeHosts, 0),
+			makeEdge("a", "b", types.EdgeHosts),
+			makeEdge("b", "c", types.EdgeHosts),
 		},
 	)
 
@@ -162,7 +162,7 @@ func TestMergeTopology_AddsNewEdges(t *testing.T) {
 	src := makeTopology(
 		"a",
 		[]types.RuntimeNode{makeNode("a"), makeNode("b")},
-		[]types.RuntimeEdge{makeEdge("a", "b", types.EdgeHosts, 0)},
+		[]types.RuntimeEdge{makeEdge("a", "b", types.EdgeHosts)},
 	)
 	mergeTopology(dst, src)
 	if len(dst.Edges) != 1 {
@@ -171,7 +171,7 @@ func TestMergeTopology_AddsNewEdges(t *testing.T) {
 }
 
 func TestMergeTopology_SkipsDuplicateEdges(t *testing.T) {
-	e := makeEdge("a", "b", types.EdgeHosts, 0)
+	e := makeEdge("a", "b", types.EdgeHosts)
 	dst := makeTopology(
 		"a",
 		[]types.RuntimeNode{makeNode("a"), makeNode("b")},

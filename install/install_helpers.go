@@ -37,6 +37,8 @@ func ensureServerPlatformMatch(id types.PackageId) error {
 		case types.CompatCompatible:
 			return nil
 		case types.CompatDegraded:
+			// CompatDegraded means the ecosystem is reachable only through an indirect
+			// hosted/support path. It is warn-only here; numeric risk gating is node-based.
 			logger.ShowWarn(fmt.Errorf(
 				"compatibility degraded for %s: %s (reason: %s)",
 				platform,

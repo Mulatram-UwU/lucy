@@ -421,6 +421,8 @@ func statusTopologyField(
 	}
 }
 
+// statusEffectiveRiskLevel derives a display risk from the primary runtime node and
+// its directly connected neighboring nodes. Edges themselves are structural only.
 func statusEffectiveRiskLevel(
 	topology *types.RuntimeTopology,
 	hasPrimaryNode bool,

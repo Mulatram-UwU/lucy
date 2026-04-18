@@ -32,8 +32,7 @@ func makeNode(id types.RuntimeNodeID, caps ...types.RuntimeCapability) types.Run
 }
 
 // makeEdge builds a RuntimeEdge.
-func makeEdge(from, to types.RuntimeNodeID, kind types.RuntimeEdgeVerb, risk types.RuntimeRiskLevel) types.RuntimeEdge {
-	_ = risk
+func makeEdge(from, to types.RuntimeNodeID, kind types.RuntimeEdgeVerb) types.RuntimeEdge {
 	return types.RuntimeEdge{From: from, To: to, Verb: kind}
 }
 

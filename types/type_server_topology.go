@@ -53,6 +53,8 @@ const (
 	CompatUnresolved   CompatVerdict = "unresolved"
 )
 
+// CompatResult reports only the compatibility verdict and its explanation.
+// Runtime risk is tracked on topology nodes, not on compat results or edges.
 type CompatResult struct {
 	Verdict CompatVerdict `json:"verdict"`
 	Reason  string        `json:"reason"`
@@ -72,6 +74,8 @@ type CompatPolicy struct {
 	Reason string `json:"reason"`
 }
 
+// RuntimeNode describes a materialized runtime layer. RiskLevel is node-scoped and
+// may be folded across connected topology components during enrichment.
 type RuntimeNode struct {
 	ID           RuntimeNodeID       `json:"id"`
 	Role         RuntimeRole         `json:"role"`
@@ -98,6 +102,8 @@ const (
 	EdgeProxies    RuntimeEdgeVerb = "proxies"    // this is preserved for the capibility of multi-server modelling, e.g. velocity proxying to a paper server. No actual usage of this verb yet.
 )
 
+// RuntimeEdge records only structural relationships between runtime nodes.
+// Compatibility severity is expressed via CompatVerdict, while risk remains node-only.
 type RuntimeEdge struct {
 	From RuntimeNodeID   `json:"from"`
 	To   RuntimeNodeID   `json:"to"`
