@@ -12,7 +12,7 @@ import (
 
 type provider struct{}
 
-func (s provider) Source() types.Source {
+func (s provider) Id() types.SourceId {
 	return types.SourceMCDR
 }
 
@@ -21,8 +21,8 @@ var Provider provider
 // Just a trivial type to implement the SearchResults interface
 type mcdrSearchResult []string
 
-func (m mcdrSearchResult) ToSearchResults() types.SearchResults {
-	var res types.SearchResults
+func (m mcdrSearchResult) ToSearchResults() upstream.SearchResponse {
+	var res upstream.SearchResponse
 	for _, id := range m {
 		res.Projects = append(res.Projects, syntax.ToProjectName(id))
 	}
@@ -32,7 +32,7 @@ func (m mcdrSearchResult) ToSearchResults() types.SearchResults {
 
 // TODO: handle search options
 
-func (s provider) Search(
+func (s provider) SearchLegacy(
 	query string,
 	options types.SearchOptions,
 ) (res upstream.RawSearchResults, err error) {
@@ -47,7 +47,7 @@ func (s provider) Search(
 	return
 }
 
-func (s provider) Fetch(id types.PackageId) (
+func (s provider) Fetch(id types.VersionedPackageRef) (
 	rem upstream.RawPackageRemote,
 	err error,
 ) {
@@ -55,7 +55,7 @@ func (s provider) Fetch(id types.PackageId) (
 	return
 }
 
-func (s provider) Metadata(name types.PackageName) (
+func (s provider) Metadata(name types.BarePackageName) (
 	info upstream.RawProjectInformation,
 	err error,
 ) {
@@ -81,7 +81,7 @@ func (s provider) Metadata(name types.PackageName) (
 	return info, nil
 }
 
-func (s provider) Dependencies(id types.PackageId) (
+func (s provider) Dependencies(id types.VersionedPackageRef) (
 	upstream.RawPackageDependencies,
 	error,
 ) {
@@ -89,7 +89,7 @@ func (s provider) Dependencies(id types.PackageId) (
 	panic("implement me")
 }
 
-func (s provider) Support(name types.PackageName) (
+func (s provider) Support(name types.BarePackageName) (
 	supports upstream.RawProjectSupport,
 	err error,
 ) {
@@ -97,8 +97,8 @@ func (s provider) Support(name types.PackageName) (
 	panic("implement me")
 }
 
-func (s provider) ParseAmbiguousId(id types.PackageId) (
-	parsed types.PackageId,
+func (s provider) ParseAmbiguousId(id types.VersionedPackageRef) (
+	parsed types.VersionedPackageRef,
 	err error,
 ) {
 	var rel *release
@@ -124,7 +124,7 @@ func (s provider) ParseAmbiguousId(id types.PackageId) (
 	if err != nil {
 		return id, err
 	}
-	parsed = types.PackageId{
+	parsed = types.VersionedPackageRef{
 		Platform: types.PlatformMCDR,
 		Name:     id.Name,
 		Version:  types.BareVersion(rel.Meta.Version),

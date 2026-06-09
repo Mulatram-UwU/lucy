@@ -11,7 +11,7 @@ import (
 
 const projectUrlPrefix = "https://api.modrinth.com/v2/project/"
 
-func versionsUrl(slug types.PackageName) (urlString string) {
+func versionsUrl(slug types.BarePackageName) (urlString string) {
 	urlString, _ = url.JoinPath(
 		projectUrlPrefix,
 		string(slug),
@@ -43,7 +43,7 @@ func projectDependencyUrl(suffix string) (urlString string) {
 const searchUrlTemplate = `https://api.modrinth.com/v2/search?query={{.query}}&limit=100&index={{.index}}&facets={{.facets}}`
 
 func searchUrl(
-	query types.PackageName,
+	query string,
 	option searchOptions,
 ) (urlString string) {
 	urlTemplate, _ := template.New("modrinth_search_url").Parse(searchUrlTemplate)

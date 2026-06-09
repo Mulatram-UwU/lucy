@@ -29,7 +29,7 @@ import (
 
 func Fetch(
 	provider Provider,
-	id types.PackageId,
+	id types.VersionedPackageRef,
 ) (result FetchResult, err error) {
 	resolvedID, err := provider.ParseAmbiguousId(id)
 	if err != nil {
@@ -47,7 +47,7 @@ func Fetch(
 
 func Dependencies(
 	provider Provider,
-	id types.PackageId,
+	id types.VersionedPackageRef,
 ) (deps *types.PackageDependencies, err error) {
 	raw, err := provider.Dependencies(id)
 	if err != nil {
@@ -59,23 +59,23 @@ func Dependencies(
 
 func Metadata(
 	provider Provider,
-	name types.PackageName,
+	name types.BarePackageName,
 ) (info types.Metadata, err error) {
 	raw, err := provider.Metadata(name)
 	if err != nil {
 		return types.Metadata{}, err
 	}
 	info = raw.ToProjectInformation()
-	info.From = provider.Source()
+	info.From = provider.Id()
 	return info, nil
 }
 
 func Search(
 	provider Provider,
-	query types.PackageName,
+	query types.BarePackageName,
 	option types.SearchOptions,
 ) (res types.SearchResults, err error) {
-	raw, err := provider.Search(string(query), option)
+	raw, err := provider.SearchLegacy(string(query), option)
 	if err != nil {
 		return res, err
 	}

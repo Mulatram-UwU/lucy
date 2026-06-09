@@ -9,11 +9,11 @@ type provider struct{}
 
 var Provider provider
 
-func (provider) Source() types.Source {
+func (provider) Id() types.SourceId {
 	return types.SourceGitHub
 }
 
-func (provider) Search(
+func (provider) SearchLegacy(
 	query string,
 	options types.SearchOptions,
 ) (res upstream.RawSearchResults, err error) {
@@ -21,31 +21,31 @@ func (provider) Search(
 }
 
 func (provider) Fetch(
-	id types.PackageId,
+	id types.VersionedPackageRef,
 ) (remote upstream.RawPackageRemote, err error) {
 	panic("TODO: implement github provider Fetch")
 }
 
 func (provider) Metadata(
-	name types.PackageName,
+	name types.BarePackageName,
 ) (info upstream.RawProjectInformation, err error) {
 	panic("TODO: implement github provider Information")
 }
 
 func (provider) Dependencies(
-	id types.PackageId,
+	id types.VersionedPackageRef,
 ) (deps upstream.RawPackageDependencies, err error) {
 	panic("TODO: implement github provider Dependencies")
 }
 
 func (provider) Support(
-	name types.PackageName,
+	name types.BarePackageName,
 ) (supports upstream.RawProjectSupport, err error) {
 	panic("TODO: implement github provider Support")
 }
 
 func (provider) ParseAmbiguousId(
-	id types.PackageId,
-) (parsed types.PackageId, err error) {
+	id types.VersionedPackageRef,
+) (parsed types.VersionedPackageRef, err error) {
 	panic("TODO: implement github provider ParseAmbiguousId")
 }

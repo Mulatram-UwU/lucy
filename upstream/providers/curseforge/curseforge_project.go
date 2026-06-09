@@ -10,13 +10,13 @@ import (
 // slug parameter. CurseForge has no "get by slug" endpoint, so we search with
 // the slug query parameter and look for an exact match.
 // Docs: https://docs.curseforge.com/rest-api/#search-mods
-func resolveSlug(slug types.PackageName) (*modResponse, error) {
+func resolveSlug(slug types.BarePackageName) (*modResponse, error) {
 	// Canonicalize slug-like name to provider canonical slug before search.
 	if canonical, ok := slugmap.Default().GetLoose(
 		types.SourceCurseForge,
 		string(slug),
 	); ok {
-		slug = types.PackageName(canonical)
+		slug = types.BarePackageName(canonical)
 	}
 
 	u := slugSearchUrl(slug)

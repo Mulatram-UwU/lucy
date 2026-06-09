@@ -23,7 +23,7 @@ var (
 	ErrNoDownload         = errors.New("hangar: download not found")
 )
 
-func getProject(name types.PackageName) (*hangarProject, error) {
+func getProject(name types.BarePackageName) (*hangarProject, error) {
 	if project, err := getProjectByPath(string(name)); err == nil {
 		if project.ProjectRef().CanonicalName() == name {
 			return project, nil
@@ -79,7 +79,7 @@ func searchProjects(
 	return res, nil
 }
 
-func getVersion(id types.PackageId) (*hangarVersion, error) {
+func getVersion(id types.VersionedPackageRef) (*hangarVersion, error) {
 	project, err := getProject(id.Name)
 	if err != nil {
 		return nil, err
@@ -97,7 +97,7 @@ func getVersion(id types.PackageId) (*hangarVersion, error) {
 	return version, nil
 }
 
-func listVersions(name types.PackageName) ([]hangarVersion, error) {
+func listVersions(name types.BarePackageName) ([]hangarVersion, error) {
 	project, err := getProject(name)
 	if err != nil {
 		return nil, err
@@ -167,7 +167,7 @@ func withQuery(base string, params url.Values) string {
 	return base + "?" + params.Encode()
 }
 
-func searchPlatform(platform types.Platform) string {
+func searchPlatform(platform types.PlatformId) string {
 	switch platform {
 	case types.PlatformBukkit:
 		return hangarPreferredPlatform

@@ -14,7 +14,7 @@ var ErrNoProviderSucceeded = errors.New("no provider succeeded")
 type ProviderError struct {
 	// Source identifies the semantic upstream label for user-facing diagnostics.
 	// The failed runtime executor is a Provider implementation.
-	Source types.Source
+	Source types.SourceId
 	Err    error
 }
 
@@ -37,15 +37,15 @@ type InfoResult struct {
 // types.SearchResults item in the returned slice.
 func SearchMany(
 	providers []upstream.Provider,
-	query types.PackageName,
+	query types.BarePackageName,
 	options types.SearchOptions,
-) ([]types.SearchResults, []ProviderError) {
+) ([]upstream.SearchResponse, []ProviderError) {
 	if len(providers) == 0 {
 		return nil, nil
 	}
 
 	type slot struct {
-		res    types.SearchResults
+		res    upstream.SearchResponse
 		err    ProviderError
 		ok     bool
 		failed bool
@@ -63,7 +63,7 @@ func SearchMany(
 				slots[index] = slot{
 					failed: true,
 					err: ProviderError{
-						Source: provider.Source(),
+						Source: provider.Id(),
 						Err:    err,
 					},
 				}
@@ -75,7 +75,7 @@ func SearchMany(
 
 	wg.Wait()
 
-	results := make([]types.SearchResults, 0, len(providers))
+	results := make([]upstream.SearchResponse, 0, len(providers))
 	providerErrors := make([]ProviderError, 0)
 	for _, item := range slots {
 		if item.ok {
@@ -93,7 +93,7 @@ func SearchMany(
 // successful results.
 func FetchMany(
 	providers []upstream.Provider,
-	id types.PackageId,
+	id types.VersionedPackageRef,
 ) ([]upstream.FetchResult, []ProviderError) {
 	if len(providers) == 0 {
 		return nil, nil
@@ -118,7 +118,7 @@ func FetchMany(
 				slots[index] = slot{
 					failed: true,
 					err: ProviderError{
-						Source: provider.Source(),
+						Source: provider.Id(),
 						Err:    err,
 					},
 				}
@@ -162,7 +162,7 @@ func GetMedataHedged(
 			res, err := upstream.Metadata(provider, ref.Name)
 			if err != nil {
 				errChan <- ProviderError{
-					Source: provider.Source(),
+					Source: provider.Id(),
 					Err:    fmt.Errorf("information failed: %w", err),
 				}
 				return
@@ -192,7 +192,7 @@ func GetMedataHedged(
 // fails; partial failures are collected in the returned []ProviderError slice.
 func DependenciesMany(
 	providers []upstream.Provider,
-	id types.PackageId,
+	id types.VersionedPackageRef,
 ) ([]types.PackageDependencies, []ProviderError) {
 	if len(providers) == 0 {
 		return nil, nil
@@ -217,7 +217,7 @@ func DependenciesMany(
 				slots[index] = slot{
 					failed: true,
 					err: ProviderError{
-						Source: provider.Source(),
+						Source: provider.Id(),
 						Err:    err,
 					},
 				}

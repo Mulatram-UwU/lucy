@@ -19,16 +19,16 @@ type provider struct{}
 
 var Provider provider
 
-func (provider) Source() types.Source {
+func (provider) Id() types.SourceId {
 	return types.SourceCurseForge
 }
 
 // Search queries the CurseForge /v1/mods/search endpoint.
-func (provider) Search(
+func (provider) SearchLegacy(
 	query string,
 	options types.SearchOptions,
 ) (res upstream.RawSearchResults, err error) {
-	u := searchUrl(types.PackageName(query), options)
+	u := searchUrl(types.BarePackageName(query), options)
 	logger.Debug("searching via curseforge api: " + u)
 
 	resp := &searchResponse{}
@@ -39,7 +39,7 @@ func (provider) Search(
 }
 
 // Fetch resolves the package version, then fetches the corresponding file.
-func (p provider) Fetch(id types.PackageId) (
+func (p provider) Fetch(id types.VersionedPackageRef) (
 	remote upstream.RawPackageRemote,
 	err error,
 ) {
@@ -57,7 +57,7 @@ func (p provider) Fetch(id types.PackageId) (
 }
 
 // Information resolves a project slug and returns project metadata.
-func (provider) Metadata(name types.PackageName) (
+func (provider) Metadata(name types.BarePackageName) (
 	info upstream.RawProjectInformation,
 	err error,
 ) {
@@ -73,7 +73,7 @@ func (provider) Metadata(name types.PackageName) (
 }
 
 func (p provider) Dependencies(
-	id types.PackageId,
+	id types.VersionedPackageRef,
 ) (deps upstream.RawPackageDependencies, err error) {
 	// Resolve the mod to get the modId
 	mod, err := resolveSlug(id.Name)
@@ -124,8 +124,8 @@ func (c *curseforgeDependencies) ToPackageDependencies() types.PackageDependenci
 		case 2: // OptionalDependency
 			result.Value = append(
 				result.Value, types.Dependency{
-					Id: types.PackageId{
-						Name: types.PackageName(
+					Id: types.VersionedPackageRef{
+						Name: types.BarePackageName(
 							fmt.Sprintf(
 								"%d",
 								dep.ModId,
@@ -138,8 +138,8 @@ func (c *curseforgeDependencies) ToPackageDependencies() types.PackageDependenci
 		case 3: // RequiredDependency
 			result.Value = append(
 				result.Value, types.Dependency{
-					Id: types.PackageId{
-						Name: types.PackageName(
+					Id: types.VersionedPackageRef{
+						Name: types.BarePackageName(
 							fmt.Sprintf(
 								"%d",
 								dep.ModId,
@@ -159,15 +159,15 @@ func (c *curseforgeDependencies) ToPackageDependencies() types.PackageDependenci
 }
 
 func (provider) Support(
-	name types.PackageName,
+	name types.BarePackageName,
 ) (supports upstream.RawProjectSupport, err error) {
 	panic("TODO: implement curseforge provider Support")
 }
 
 // ParseAmbiguousId resolves abstract version specifiers (latest,
 // compatible, any) to a concrete version by querying the CurseForge API.
-func (p provider) ParseAmbiguousId(id types.PackageId) (
-	parsed types.PackageId,
+func (p provider) ParseAmbiguousId(id types.VersionedPackageRef) (
+	parsed types.VersionedPackageRef,
 	err error,
 ) {
 	if id.Platform.IsSelector() {

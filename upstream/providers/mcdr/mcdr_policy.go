@@ -20,7 +20,7 @@ func selectLatestCompatibleRelease(
 		return nil, nil
 	}
 
-	mcdrPackage := types.PackageId{
+	mcdrPackage := types.VersionedPackageRef{
 		Platform: types.PlatformMCDR,
 		Name:     "mcdreforged",
 		Version:  localMcdrVersion,

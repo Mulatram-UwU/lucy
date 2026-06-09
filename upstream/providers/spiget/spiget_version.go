@@ -6,7 +6,7 @@ import (
 	"github.com/mclucy/lucy/types"
 )
 
-func resolveResourceByProjectName(name types.PackageName) (
+func resolveResourceByProjectName(name types.BarePackageName) (
 	*resourceResponse,
 	error,
 ) {

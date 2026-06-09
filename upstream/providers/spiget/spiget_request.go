@@ -41,8 +41,8 @@ func requestJSON(requestURL string, out any, notFound error) error {
 }
 
 func searchResources(query string, options types.SearchOptions) (
-searchResponse,
-error,
+	searchResponse,
+	error,
 ) {
 	u := searchResourcesURL(query, options)
 	resp := searchResponse{}
@@ -121,7 +121,7 @@ func spigetSearchSort(sort types.SearchSort) string {
 	}
 }
 
-func parseNumericResourceID(name types.PackageName) (int64, bool) {
+func parseNumericResourceID(name types.BarePackageName) (int64, bool) {
 	trimmed := strings.TrimSpace(name.String())
 	if trimmed == "" {
 		return 0, false

@@ -27,9 +27,9 @@ import (
 )
 
 var (
-	ErrUnknownSource = errors.New("unknown source")
+	ErrUnknownSource     = errors.New("unknown source")
 	ErrUnsupportedSource = errors.New("unsupported source")
-	ErrInvalidPlatform = errors.New("cannot find sources for platform")
+	ErrInvalidPlatform   = errors.New("cannot find sources for platform")
 )
 
 // providerBySource binds semantic Source values to executable Provider
@@ -38,7 +38,7 @@ var (
 // Source and Provider are intentionally not synonyms:
 //   - Some Source values are policy/sentinel markers (SourceAuto/SourceUnknown).
 //   - A Source can resolve to one provider, many providers, or none.
-var providerBySource = map[types.Source]upstream.Provider{
+var providerBySource = map[types.SourceId]upstream.Provider{
 	types.SourceModrinth: modrinth.Provider,
 	types.SourceGitHub:   githubsource.Provider,
 	types.SourceMCDR:     mcdr.Provider,
@@ -64,7 +64,7 @@ func ListAutoProviders() []upstream.Provider {
 	return providers
 }
 
-func GetProvider(src types.Source) (upstream.Provider, bool, error) {
+func GetProvider(src types.SourceId) (upstream.Provider, bool, error) {
 	if src == types.SourceCurseForge {
 		if err := curseforge2.AvailabilityError(); err != nil {
 			return nil, false, err
@@ -79,8 +79,8 @@ func GetProvider(src types.Source) (upstream.Provider, bool, error) {
 // ResolveProviders resolves ordered provider candidates for a given operation,
 // platform, and user-specified source.
 func ResolveProviders(
-platform types.Platform,
-src types.Source,
+	platform types.PlatformId,
+	src types.SourceId,
 ) ([]upstream.Provider, error) {
 	if src == types.SourceUnknown {
 		return nil, ErrUnknownSource
@@ -102,8 +102,8 @@ src types.Source,
 // selection and uses source capability data as the authority for automatic
 // selection.
 func ResolveSearchProviders(
-platform types.Platform,
-src types.Source,
+	platform types.PlatformId,
+	src types.SourceId,
 ) ([]upstream.Provider, error) {
 	if src == types.SourceUnknown {
 		return nil, ErrUnknownSource
@@ -128,8 +128,8 @@ src types.Source,
 }
 
 func ResolveProvidersFromTopology(
-topology *types.RuntimeTopology,
-src types.Source,
+	topology *types.RuntimeTopology,
+	src types.SourceId,
 ) ([]upstream.Provider, error) {
 	if src == types.SourceUnknown {
 		return nil, ErrUnknownSource
@@ -153,7 +153,7 @@ src types.Source,
 	return []upstream.Provider{}, nil
 }
 
-func resolveExplicitSource(src types.Source) ([]upstream.Provider, error) {
+func resolveExplicitSource(src types.SourceId) ([]upstream.Provider, error) {
 	provider, ok, err := GetProvider(src)
 	if err != nil {
 		return nil, err
@@ -166,8 +166,8 @@ func resolveExplicitSource(src types.Source) ([]upstream.Provider, error) {
 }
 
 func validateSearchSourcePlatform(
-src types.Source,
-platform types.Platform,
+	src types.SourceId,
+	platform types.PlatformId,
 ) error {
 	if !platform.IsSearchPlatform() {
 		return nil
@@ -181,7 +181,10 @@ platform types.Platform,
 	return fmt.Errorf("source %s does not support platform %s", src, platform)
 }
 
-func providersFromSources(sources []types.Source) ([]upstream.Provider, error) {
+func providersFromSources(sources []types.SourceId) (
+	[]upstream.Provider,
+	error,
+) {
 	providers := make([]upstream.Provider, 0, len(sources))
 	for _, source := range sources {
 		provider, ok, err := GetProvider(source)

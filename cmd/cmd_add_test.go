@@ -214,7 +214,7 @@ func TestBuildUpdatedLockMergesIncrementalResultsAndPreservesUnmentionedPackages
 	}
 }
 
-func mustParsePackageID(t *testing.T, raw string) types.PackageId {
+func mustParsePackageID(t *testing.T, raw string) types.VersionedPackageRef {
 	t.Helper()
 	id, err := syntax.Parse(raw)
 	if err != nil {

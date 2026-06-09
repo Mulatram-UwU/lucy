@@ -93,7 +93,7 @@ func downloadBatchPackages(
 		}
 	}
 
-	resolvedIds := make([]types.PackageId, len(packages))
+	resolvedIds := make([]types.VersionedPackageRef, len(packages))
 	for i, p := range packages {
 		resolvedIds[i] = p.Id
 	}

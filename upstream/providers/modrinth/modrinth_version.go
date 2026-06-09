@@ -23,11 +23,11 @@ var (
 )
 
 // TODO: This has a chance of causing segmentation faults
-func listVersions(slug types.PackageName) (
+func listVersions(slug types.BarePackageName) (
 	versions []*versionResponse,
 	err error,
 ) {
-	tryFetch := func(target types.PackageName) (
+	tryFetch := func(target types.BarePackageName) (
 		[]*versionResponse,
 		error,
 	) {
@@ -62,7 +62,7 @@ func listVersions(slug types.PackageName) (
 		types.SourceModrinth,
 		string(slug),
 	); ok && canonical != string(slug) {
-		return tryFetch(types.PackageName(canonical))
+		return tryFetch(types.BarePackageName(canonical))
 	}
 
 	return nil, err
@@ -70,7 +70,7 @@ func listVersions(slug types.PackageName) (
 
 // getVersion is named as so because a Package in lucy is equivalent to a version
 // in SourceModrinth.
-func getVersion(id types.PackageId) (
+func getVersion(id types.VersionedPackageRef) (
 	v *versionResponse,
 	err error,
 ) {
@@ -116,17 +116,17 @@ func getVersionById(id string) (v *versionResponse, err error) {
 
 func versionSupportsLoader(
 	version *versionResponse,
-	loader types.Platform,
+	loader types.PlatformId,
 ) bool {
 	for _, l := range version.Loaders {
-		if types.Platform(l).Satisfy(loader) {
+		if types.PlatformId(l).Satisfy(loader) {
 			return true
 		}
 	}
 	return false
 }
 
-func latestVersion(slug types.PackageName) (
+func latestVersion(slug types.BarePackageName) (
 	v *versionResponse,
 	err error,
 ) {
@@ -147,8 +147,8 @@ func latestVersion(slug types.PackageName) (
 }
 
 func latestCompatibleVersion(
-	slug types.PackageName,
-	platform types.Platform,
+	slug types.BarePackageName,
+	platform types.PlatformId,
 ) (
 	v *versionResponse,
 	err error,

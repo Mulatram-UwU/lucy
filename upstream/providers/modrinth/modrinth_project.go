@@ -12,7 +12,7 @@ import (
 	"github.com/mclucy/lucy/types"
 )
 
-func getProjectId(slug types.PackageName) (id string, err error) {
+func getProjectId(slug types.BarePackageName) (id string, err error) {
 	res, err := http.Get(projectUrl(string(slug)))
 	if err != nil {
 		return "", fmt.Errorf("modrinth: request failed: %w", err)
@@ -59,11 +59,11 @@ func getProjectById(id string) (project *projectResponse, err error) {
 	return
 }
 
-func getProjectByName(slug types.PackageName) (
+func getProjectByName(slug types.BarePackageName) (
 	project *projectResponse,
 	err error,
 ) {
-	tryFetch := func(target types.PackageName) (
+	tryFetch := func(target types.BarePackageName) (
 		*projectResponse,
 		error,
 	) {
@@ -98,7 +98,7 @@ func getProjectByName(slug types.PackageName) (
 		types.SourceModrinth,
 		string(slug),
 	); ok && canonical != string(slug) {
-		return tryFetch(types.PackageName(canonical))
+		return tryFetch(types.BarePackageName(canonical))
 	}
 
 	return nil, err
@@ -132,10 +132,10 @@ func getProjectMembers(id string) (
 var ErrorInvalidDependency = errors.New("invalid dependency")
 
 func DependencyToPackage(
-	dependent types.PackageId,
+	dependent types.VersionedPackageRef,
 	dependency *dependenciesResponse,
 ) (
-	p types.PackageId,
+	p types.VersionedPackageRef,
 	err error,
 ) {
 	var version *versionResponse

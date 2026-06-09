@@ -56,7 +56,7 @@ func actionRemove(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("manifest is required for remove")
 	}
 
-	ids := make([]types.PackageId, 0, len(args))
+	ids := make([]types.VersionedPackageRef, 0, len(args))
 	for _, arg := range args {
 		id, err := syntax.Parse(arg)
 		if err != nil {

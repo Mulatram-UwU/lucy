@@ -11,18 +11,18 @@ import (
 // resolution pass: which roots to solve, which fixed constraints to respect,
 // and which advisory candidates must be pruned before verification.
 type recursiveResolutionPlan struct {
-	Roots                []types.PackageId
+	Roots                []types.VersionedPackageRef
 	InstalledConstraints []InstalledConstraint
 	ExcludedCandidates   map[string]struct{}
 }
 
 func newRecursiveResolutionPlan(
-	roots []types.PackageId,
+	roots []types.VersionedPackageRef,
 	installedConstraints []InstalledConstraint,
 ) recursiveResolutionPlan {
 	return recursiveResolutionPlan{
 		Roots: append(
-			[]types.PackageId(nil),
+			[]types.VersionedPackageRef(nil),
 			roots...,
 		),
 		InstalledConstraints: append(
@@ -64,7 +64,7 @@ func summarizeReconcileDiff(diff ReconcileDiff) string {
 	return strings.Join(parts, ", ")
 }
 
-func excludedCandidateKeys(ids []types.PackageId) map[string]struct{} {
+func excludedCandidateKeys(ids []types.VersionedPackageRef) map[string]struct{} {
 	excluded := make(map[string]struct{}, len(ids))
 	for _, id := range ids {
 		excluded[id.StringPlatformName()] = struct{}{}
@@ -73,15 +73,15 @@ func excludedCandidateKeys(ids []types.PackageId) map[string]struct{} {
 }
 
 func appendMissingRoots(
-	existing []types.PackageId,
-	missing []types.PackageId,
-) []types.PackageId {
+	existing []types.VersionedPackageRef,
+	missing []types.VersionedPackageRef,
+) []types.VersionedPackageRef {
 	if len(missing) == 0 {
-		return append([]types.PackageId(nil), existing...)
+		return append([]types.VersionedPackageRef(nil), existing...)
 	}
 
 	seen := make(map[string]struct{}, len(existing)+len(missing))
-	updated := make([]types.PackageId, 0, len(existing)+len(missing))
+	updated := make([]types.VersionedPackageRef, 0, len(existing)+len(missing))
 	for _, id := range existing {
 		key := id.StringPlatformName()
 		if _, ok := seen[key]; ok {

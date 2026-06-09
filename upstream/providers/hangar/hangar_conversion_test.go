@@ -32,13 +32,13 @@ func TestProjectSearchResponseToSearchResults(t *testing.T) {
 	if len(results.Projects) != 2 {
 		t.Fatalf("expected 2 projects, got %d", len(results.Projects))
 	}
-	if results.Projects[0] != types.PackageName("placeholderapi") {
+	if results.Projects[0] != types.BarePackageName("placeholderapi") {
 		t.Fatalf(
 			"expected first project placeholderapi, got %s",
 			results.Projects[0],
 		)
 	}
-	if results.Projects[1] != types.PackageName("pronounsmc") {
+	if results.Projects[1] != types.BarePackageName("pronounsmc") {
 		t.Fatalf(
 			"expected second project pronounsmc, got %s",
 			results.Projects[1],
@@ -49,7 +49,7 @@ func TestProjectSearchResponseToSearchResults(t *testing.T) {
 	if ref.LookupPath() != "HelpChat/PlaceholderAPI" {
 		t.Fatalf("expected owner-aware lookup path, got %s", ref.LookupPath())
 	}
-	if ref.CanonicalName() != types.PackageName("placeholderapi") {
+	if ref.CanonicalName() != types.BarePackageName("placeholderapi") {
 		t.Fatalf(
 			"expected canonical project name placeholderapi, got %s",
 			ref.CanonicalName(),
@@ -158,7 +158,7 @@ func TestHangarProjectToProjectInformationAndSupport(t *testing.T) {
 	)
 
 	support := project.ToProjectSupport()
-	if len(support.Platforms) != 1 || support.Platforms[0] != types.Platform("paper") {
+	if len(support.Platforms) != 1 || support.Platforms[0] != types.PlatformId("paper") {
 		t.Fatalf("expected paper support, got %+v", support.Platforms)
 	}
 	if len(support.MinecraftVersions) != 3 || support.MinecraftVersions[0] != types.BareVersion("1.20.6") {
@@ -190,7 +190,7 @@ func TestHangarVersionToPackageRemoteAndSupport(t *testing.T) {
 		PluginDependencies: map[string][]hangarPluginDependency{},
 	}
 
-	remote, ok := version.ToPackageRemoteForPlatform(types.Platform("paper"))
+	remote, ok := version.ToPackageRemoteForPlatform(types.PlatformId("paper"))
 	if !ok {
 		t.Fatalf("expected PAPER download to resolve")
 	}
@@ -214,7 +214,7 @@ func TestHangarVersionToPackageRemoteAndSupport(t *testing.T) {
 	}
 
 	support := version.ToProjectSupport()
-	if len(support.Platforms) != 1 || support.Platforms[0] != types.Platform("paper") {
+	if len(support.Platforms) != 1 || support.Platforms[0] != types.PlatformId("paper") {
 		t.Fatalf(
 			"expected version support for paper, got %+v",
 			support.Platforms,
@@ -276,7 +276,7 @@ func TestHangarVersionRemoteSelectionPolicy(t *testing.T) {
 		)
 	}
 
-	paperRemote, ok := version.ToPackageRemoteForPlatform(types.Platform("PaPeR"))
+	paperRemote, ok := version.ToPackageRemoteForPlatform(types.PlatformId("PaPeR"))
 	if !ok {
 		t.Fatalf("expected case-insensitive platform match for paper")
 	}
@@ -284,7 +284,7 @@ func TestHangarVersionRemoteSelectionPolicy(t *testing.T) {
 		t.Fatalf("expected paper download url, got %q", paperRemote.FileUrl)
 	}
 
-	if _, ok := version.ToPackageRemoteForPlatform(types.Platform("velocity")); ok {
+	if _, ok := version.ToPackageRemoteForPlatform(types.PlatformId("velocity")); ok {
 		t.Fatalf("expected missing platform to remain unresolved")
 	}
 
@@ -297,8 +297,8 @@ func TestHangarVersionRemoteSelectionPolicy(t *testing.T) {
 	}
 	if !slices.Contains(
 		deps,
-		types.PackageName("essentialsx"),
-	) || !slices.Contains(deps, types.PackageName("vault")) {
+		types.BarePackageName("essentialsx"),
+	) || !slices.Contains(deps, types.BarePackageName("vault")) {
 		t.Fatalf("expected normalized plugin dependency names, got %#v", deps)
 	}
 

@@ -9,7 +9,7 @@ import (
 	"github.com/mclucy/lucy/types"
 )
 
-func ensureServerPlatformMatch(id types.PackageId) error {
+func ensureServerPlatformMatch(id types.VersionedPackageRef) error {
 	platform := id.Platform
 	serverInfo := probe.ServerInfo()
 

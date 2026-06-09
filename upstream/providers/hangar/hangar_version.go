@@ -10,7 +10,7 @@ const hangarPreferredPlatform = "PAPER"
 
 type hangarDependencies struct {
 	version  *hangarVersion
-	platform types.Platform
+	platform types.PlatformId
 }
 
 var _ upstream.RawPackageDependencies = (*hangarDependencies)(nil)
@@ -23,7 +23,7 @@ func (h *hangarDependencies) ToPackageDependencies() types.PackageDependencies {
 		}
 		result.Value = append(
 			result.Value, types.Dependency{
-				Id: types.PackageId{
+				Id: types.VersionedPackageRef{
 					Platform: types.PlatformNone,
 					Name:     syntax.ToProjectName(dep.Name),
 				},
@@ -34,7 +34,7 @@ func (h *hangarDependencies) ToPackageDependencies() types.PackageDependencies {
 	return result
 }
 
-func resolveVersion(id types.PackageId) (*hangarVersion, error) {
+func resolveVersion(id types.VersionedPackageRef) (*hangarVersion, error) {
 	versions, err := listVersions(id.Name)
 	if err != nil {
 		return nil, err
@@ -57,7 +57,7 @@ func resolveVersion(id types.PackageId) (*hangarVersion, error) {
 
 func selectLatestVersion(
 	versions []hangarVersion,
-	platform types.Platform,
+	platform types.PlatformId,
 ) (*hangarVersion, error) {
 	if version := firstVersionMatching(
 		versions,
@@ -78,7 +78,7 @@ func selectLatestVersion(
 
 func selectLatestCompatibleVersion(
 	versions []hangarVersion,
-	platform types.Platform,
+	platform types.PlatformId,
 ) (*hangarVersion, error) {
 	if version := firstVersionMatching(
 		versions,
@@ -92,7 +92,7 @@ func selectLatestCompatibleVersion(
 
 func firstVersionMatching(
 	versions []hangarVersion,
-	platform types.Platform,
+	platform types.PlatformId,
 	requireCompatibility bool,
 ) *hangarVersion {
 	for i := range versions {
@@ -108,9 +108,9 @@ func firstVersionMatching(
 	return nil
 }
 
-func preferredDownloadPlatform(platform types.Platform) types.Platform {
+func preferredDownloadPlatform(platform types.PlatformId) types.PlatformId {
 	if platform == types.PlatformAny || platform == types.PlatformNone || platform == types.PlatformUnknown {
-		return types.Platform("paper")
+		return types.PlatformId("paper")
 	}
-	return types.Platform("paper")
+	return types.PlatformId("paper")
 }

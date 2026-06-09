@@ -11,18 +11,18 @@ type provider struct{}
 
 var Provider provider
 
-func (provider) Source() types.Source {
+func (provider) Id() types.SourceId {
 	return types.SourceHangar
 }
 
-func (provider) Search(
+func (provider) SearchLegacy(
 	query string,
 	options types.SearchOptions,
 ) (res upstream.RawSearchResults, err error) {
 	return searchProjects(query, options)
 }
 
-func (p provider) Fetch(id types.PackageId) (
+func (p provider) Fetch(id types.VersionedPackageRef) (
 	remote upstream.RawPackageRemote,
 	err error,
 ) {
@@ -41,21 +41,21 @@ func (p provider) Fetch(id types.PackageId) (
 	return nil, ErrNoDownload
 }
 
-func (p provider) Metadata(name types.PackageName) (
+func (p provider) Metadata(name types.BarePackageName) (
 	info upstream.RawProjectInformation,
 	err error,
 ) {
 	return getProject(name)
 }
 
-func (p provider) Support(name types.PackageName) (
+func (p provider) Support(name types.BarePackageName) (
 	supports upstream.RawProjectSupport,
 	err error,
 ) {
 	return getProject(name)
 }
 
-func (p provider) Dependencies(id types.PackageId) (
+func (p provider) Dependencies(id types.VersionedPackageRef) (
 	deps upstream.RawPackageDependencies,
 	err error,
 ) {
@@ -66,8 +66,8 @@ func (p provider) Dependencies(id types.PackageId) (
 	return &hangarDependencies{version: version, platform: id.Platform}, nil
 }
 
-func (p provider) ParseAmbiguousId(id types.PackageId) (
-	parsed types.PackageId,
+func (p provider) ParseAmbiguousId(id types.VersionedPackageRef) (
+	parsed types.VersionedPackageRef,
 	err error,
 ) {
 	if id.Platform.IsSelector() {

@@ -13,7 +13,7 @@ import (
 // normalization. It implements upstream.RawPackageDependencies.
 type modrinthDependencies struct {
 	version  *versionResponse
-	platform types.Platform
+	platform types.PlatformId
 }
 
 var _ upstream.RawPackageDependencies = (*modrinthDependencies)(nil)
@@ -28,7 +28,7 @@ func (m *modrinthDependencies) ToPackageDependencies() types.PackageDependencies
 			continue
 		}
 
-		parentId := types.PackageId{
+		parentId := types.VersionedPackageRef{
 			Platform: m.platform,
 			Name:     syntax.ToProjectName(m.version.Id),
 			Version:  types.BareVersion(m.version.VersionNumber),

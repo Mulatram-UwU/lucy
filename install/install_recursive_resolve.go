@@ -10,13 +10,13 @@ import (
 )
 
 type candidateRequest struct {
-	id             types.PackageId
+	id             types.VersionedPackageRef
 	provenancePath []string
 	mandatory      bool
 }
 
 type candidateGraphResolver interface {
-	ResolvePackage(id types.PackageId) (types.Package, error)
+	ResolvePackage(id types.VersionedPackageRef) (types.Package, error)
 	ResolveDependencies(pkg types.Package) ([]types.PackageDependencies, error)
 }
 
@@ -30,7 +30,7 @@ type candidateGraphPlanner struct {
 // requested roots, seeding fixed installed constraints up front and running the
 // constraint merge engine after every newly discovered dependency batch.
 func BuildCandidateGraph(
-	roots []types.PackageId,
+	roots []types.VersionedPackageRef,
 	providers []upstream.Provider,
 	installedConstraints []InstalledConstraint,
 	options Options,
@@ -48,7 +48,7 @@ func BuildCandidateGraph(
 // caller-provided resolver so the planning loop can run without direct provider
 // or routing calls in the planner core.
 func BuildCandidateGraphWithResolver(
-	roots []types.PackageId,
+	roots []types.VersionedPackageRef,
 	providers []upstream.Provider,
 	installedConstraints []InstalledConstraint,
 	options Options,
@@ -97,7 +97,7 @@ func BuildCandidateGraphWithResolver(
 }
 
 func newCandidateGraphPlanner(
-	roots []types.PackageId,
+	roots []types.VersionedPackageRef,
 	providers []upstream.Provider,
 	installedConstraints []InstalledConstraint,
 ) (*candidateGraphPlanner, error) {

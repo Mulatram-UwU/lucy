@@ -4,7 +4,7 @@ import (
 	"github.com/mclucy/lucy/types"
 )
 
-func GetFile(id types.PackageId) (
+func GetFile(id types.VersionedPackageRef) (
 	url string,
 	filename string,
 	err error,

@@ -19,36 +19,36 @@ import "github.com/mclucy/lucy/types"
 //   - Source selection/fallback policy is handled by dedicated resolver logic
 //     outside this file.
 type Provider interface {
-	Search(query string, options types.SearchOptions) (
+	SearchLegacy(query string, options types.SearchOptions) (
 		res RawSearchResults,
 		err error,
 	)
-	Fetch(id types.PackageId) (
+	Fetch(id types.VersionedPackageRef) (
 		remote RawPackageRemote,
 		err error,
 	)
-	Metadata(name types.PackageName) (
+	Metadata(name types.BarePackageName) (
 		info RawProjectInformation,
 		err error,
 	)
-	Dependencies(id types.PackageId) (
+	Dependencies(id types.VersionedPackageRef) (
 		deps RawPackageDependencies,
 		err error,
 	)
-	Support(name types.PackageName) (
+	Support(name types.BarePackageName) (
 		supports RawProjectSupport,
 		err error,
 	)
-	ParseAmbiguousId(id types.PackageId) (
-		parsed types.PackageId,
+	ParseAmbiguousId(id types.VersionedPackageRef) (
+		parsed types.VersionedPackageRef,
 		err error,
 	)
-	// Source returns the semantic source identity represented by this provider.
-	Source() types.Source
+	// Id returns the semantic source identity represented by this provider.
+	Id() types.SourceId
 }
 
 type FetchResult struct {
-	ResolvedID types.PackageId
+	ResolvedID types.VersionedPackageRef
 	Remote     types.PackageRemote
 }
 
@@ -75,3 +75,8 @@ type (
 		ToSearchResults() types.SearchResults
 	}
 )
+
+type RemotePackageName struct {
+	RemoteName string
+	Source     types.SourceId
+}

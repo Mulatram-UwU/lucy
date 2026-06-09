@@ -99,7 +99,7 @@ func (idx *PackageIndex) Packages() []types.Package {
 // LookupByID performs an exact lookup by the full package identifier
 // (PackageId.StringFull()). Returns the package and true if found, or a zero
 // Package and false otherwise.
-func (idx *PackageIndex) LookupByID(id types.PackageId) (
+func (idx *PackageIndex) LookupByID(id types.VersionedPackageRef) (
 	types.Package,
 	bool,
 ) {
@@ -113,7 +113,7 @@ func (idx *PackageIndex) LookupByID(id types.PackageId) (
 //
 // This method never exposes map iteration order; results are always sorted.
 func (idx *PackageIndex) LookupByPlatformName(
-	platform types.Platform,
+	platform types.PlatformId,
 	name string,
 ) []types.Package {
 	var matches []types.Package

@@ -424,8 +424,8 @@ func assertForgeRuntime(
 
 func runtimeIdentityVersion(
 	runtime *ExecutableEvidence,
-	platform types.Platform,
-	name types.PackageName,
+	platform types.PlatformId,
+	name types.BarePackageName,
 ) string {
 	if runtime == nil {
 		return ""

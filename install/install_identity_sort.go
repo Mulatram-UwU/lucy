@@ -13,10 +13,10 @@ import (
 // Tier 2: MCDR (can coexist with anything)
 // Within the same tier, input order is preserved.
 // Duplicates (same platform) are deduplicated, keeping the first occurrence.
-func sortIdentityPackages(ids []types.PackageId) []types.PackageId {
+func sortIdentityPackages(ids []types.VersionedPackageRef) []types.VersionedPackageRef {
 	// Deduplicate by platform: keep first occurrence of each platform
-	seen := make(map[types.Platform]bool)
-	deduped := make([]types.PackageId, 0, len(ids))
+	seen := make(map[types.PlatformId]bool)
+	deduped := make([]types.VersionedPackageRef, 0, len(ids))
 	for _, id := range ids {
 		platform := id.IdentityToPlatform()
 		if !seen[platform] {
@@ -27,7 +27,7 @@ func sortIdentityPackages(ids []types.PackageId) []types.PackageId {
 
 	// Sort by tier
 	slices.SortStableFunc(
-		deduped, func(a, b types.PackageId) int {
+		deduped, func(a, b types.VersionedPackageRef) int {
 			tierA := getTier(a.IdentityToPlatform())
 			tierB := getTier(b.IdentityToPlatform())
 			if tierA < tierB {
@@ -46,8 +46,8 @@ func sortIdentityPackages(ids []types.PackageId) []types.PackageId {
 // validateIdentityCompatibility validates that no two incompatible identity packages exist.
 // Incompatibility rule: only one tier-1 platform (Fabric, Forge, NeoForge) is allowed.
 // Returns nil if valid, or an error describing the conflict.
-func validateIdentityCompatibility(ids []types.PackageId) error {
-	tier1Platforms := make([]types.PackageId, 0)
+func validateIdentityCompatibility(ids []types.VersionedPackageRef) error {
+	tier1Platforms := make([]types.VersionedPackageRef, 0)
 
 	for _, id := range ids {
 		platform := id.IdentityToPlatform()
@@ -73,7 +73,7 @@ func validateIdentityCompatibility(ids []types.PackageId) error {
 }
 
 // getTier returns the dependency tier for a platform.
-func getTier(platform types.Platform) int {
+func getTier(platform types.PlatformId) int {
 	switch platform {
 	case types.PlatformMinecraft:
 		return 0

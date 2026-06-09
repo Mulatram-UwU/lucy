@@ -3,7 +3,7 @@ package upstream
 import "github.com/mclucy/lucy/types"
 
 type SupportedPlatformsReporter interface {
-	SupportedPlatforms() []types.Platform
+	SupportedPlatforms() []types.PlatformId
 }
 
 type DependencyResolver interface {
@@ -11,8 +11,8 @@ type DependencyResolver interface {
 }
 
 type ArtifactMapper interface {
-	NameByHash(artifact Hashable) types.RemotePackageName
-	VersionedRefByHash(artifact Hashable) types.PackageId
+	NameByHash(artifact Hashable) RemotePackageName
+	VersionedRefByHash(artifact Hashable) types.VersionedPackageRef
 }
 
 type Hashable interface{}
@@ -24,7 +24,7 @@ type ArtifactResolver interface {
 type ResolvedArtifact struct {
 	Ref           types.PackageRef
 	Version       types.BareVersion
-	Source        types.Source
+	Source        types.SourceId
 	FileURL       string
 	Filename      string
 	Hash          string

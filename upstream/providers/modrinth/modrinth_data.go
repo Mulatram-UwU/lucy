@@ -3,7 +3,6 @@ package modrinth
 import (
 	"time"
 
-	"github.com/mclucy/lucy/syntax"
 	"github.com/mclucy/lucy/types"
 	"github.com/mclucy/lucy/upstream"
 )
@@ -65,7 +64,7 @@ type projectResponse struct {
 func (p *projectResponse) ToProjectSupport() types.PlatformSupport {
 	supports := types.PlatformSupport{
 		MinecraftVersions: make([]types.BareVersion, 0),
-		Platforms:         make([]types.Platform, 0),
+		Platforms:         make([]types.PlatformId, 0),
 	}
 
 	for _, version := range p.GameVersions {
@@ -78,7 +77,7 @@ func (p *projectResponse) ToProjectSupport() types.PlatformSupport {
 	for _, platform := range p.Loaders {
 		supports.Platforms = append(
 			supports.Platforms,
-			types.Platform(platform),
+			types.PlatformId(platform),
 		)
 	}
 	return supports
@@ -156,43 +155,53 @@ func (p *projectResponse) ToProjectInformation() (info types.Metadata) {
 // Example
 // https://api.modrinth.com/v2/search?query=carpet&limit=100&index=relevance&facets=%5B%5B%22server_side:required%22,%22server_side:optional%22%5D%5D
 type searchResultResponse struct {
-	Hits []struct {
-		ProjectId         string    `json:"project_id"`
-		ProjectType       string    `json:"project_type"`
-		Slug              string    `json:"slug"`
-		Author            string    `json:"author"`
-		Title             string    `json:"title"`
-		Description       string    `json:"description"`
-		Categories        []string  `json:"categories"`
-		DisplayCategories []string  `json:"display_categories"`
-		Versions          []string  `json:"versions"`
-		Downloads         int       `json:"downloads"`
-		Follows           int       `json:"follows"`
-		IconUrl           string    `json:"icon_url"`
-		DateCreated       time.Time `json:"date_created"`
-		DateModified      time.Time `json:"date_modified"`
-		LatestVersion     string    `json:"latest_version"`
-		License           string    `json:"license"`
-		ClientSide        string    `json:"client_side"`
-		ServerSide        string    `json:"server_side"`
-		Gallery           []string  `json:"gallery"`
-		FeaturedGallery   *string   `json:"featured_gallery"`
-		Color             *int      `json:"color"`
-	} `json:"hits"`
-	Offset    int `json:"offset"`
-	Limit     int `json:"limit"`
-	TotalHits int `json:"total_hits"`
+	Hits      []*hit `json:"hits"`
+	Offset    int    `json:"offset"`
+	Limit     int    `json:"limit"`
+	TotalHits int    `json:"total_hits"`
+}
+
+type hit struct {
+	ProjectId         string    `json:"project_id"`
+	ProjectType       string    `json:"project_type"`
+	Slug              string    `json:"slug"`
+	Author            string    `json:"author"`
+	Title             string    `json:"title"`
+	Description       string    `json:"description"`
+	Categories        []string  `json:"categories"`
+	DisplayCategories []string  `json:"display_categories"`
+	Versions          []string  `json:"versions"`
+	Downloads         int       `json:"downloads"`
+	Follows           int       `json:"follows"`
+	IconUrl           string    `json:"icon_url"`
+	DateCreated       time.Time `json:"date_created"`
+	DateModified      time.Time `json:"date_modified"`
+	LatestVersion     string    `json:"latest_version"`
+	License           string    `json:"license"`
+	ClientSide        string    `json:"client_side"`
+	ServerSide        string    `json:"server_side"`
+	Gallery           []string  `json:"gallery"`
+	FeaturedGallery   *string   `json:"featured_gallery"`
+	Color             *int      `json:"color"`
+}
+
+func (h hit) RemoteName() string {
+	return h.Slug
+}
+
+func (h hit) Source() types.SourceId {
+	return types.SourceModrinth
 }
 
 func (s *searchResultResponse) ToSearchResults() types.SearchResults {
 	res := types.SearchResults{
 		Source:   types.SourceModrinth,
-		Projects: make([]types.PackageName, 0, s.TotalHits),
+		Projects: make([]types.BarePackageName, 0, s.TotalHits),
 	}
 
 	// The hits should already be sorted by whatever index passed in.
 	for _, hit := range s.Hits {
-		res.Projects = append(res.Projects, syntax.ToProjectName(hit.Slug))
+		res.Projects = append(res.Projects, types.BarePackageName(hit.Slug))
 	}
 
 	return res

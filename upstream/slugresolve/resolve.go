@@ -13,10 +13,10 @@ import (
 )
 
 func ResolveSlug(
-src types.Source,
-localId string,
-filePath string,
-metadataURLs []string,
+	src types.SourceId,
+	localId string,
+	filePath string,
+	metadataURLs []string,
 ) string {
 	var fileHash string
 	if filePath != "" {

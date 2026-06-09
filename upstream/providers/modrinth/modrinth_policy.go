@@ -4,7 +4,7 @@ import "github.com/mclucy/lucy/types"
 
 func selectExactVersion(
 	versions []*versionResponse,
-	id types.PackageId,
+	id types.VersionedPackageRef,
 ) *versionResponse {
 	for _, version := range versions {
 		if types.BareVersion(version.VersionNumber) == id.Version &&
@@ -17,21 +17,21 @@ func selectExactVersion(
 
 func selectLatestVersionCandidate(
 	versions []*versionResponse,
-	platform types.Platform,
+	platform types.PlatformId,
 ) (*versionResponse, bool) {
 	return selectLatestVersionByLoader(versions, platform, false)
 }
 
 func selectLatestCompatibleVersionCandidate(
 	versions []*versionResponse,
-	platform types.Platform,
+	platform types.PlatformId,
 ) (*versionResponse, bool) {
 	return selectLatestVersionByLoader(versions, platform, true)
 }
 
 func selectLatestVersionByLoader(
 	versions []*versionResponse,
-	platform types.Platform,
+	platform types.PlatformId,
 	filterByLoader bool,
 ) (*versionResponse, bool) {
 	selected := latestReleaseVersion(versions, platform, filterByLoader)
@@ -43,7 +43,7 @@ func selectLatestVersionByLoader(
 
 func latestReleaseVersion(
 	versions []*versionResponse,
-	platform types.Platform,
+	platform types.PlatformId,
 	filterByLoader bool,
 ) *versionResponse {
 	var selected *versionResponse
@@ -61,7 +61,7 @@ func latestReleaseVersion(
 
 func latestAnyVersion(
 	versions []*versionResponse,
-	platform types.Platform,
+	platform types.PlatformId,
 	filterByLoader bool,
 ) *versionResponse {
 	var selected *versionResponse

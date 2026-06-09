@@ -14,10 +14,10 @@ type searchResponse struct {
 	Pagination pagination    `json:"pagination"`
 }
 
-func (s *searchResponse) ToSearchResults() types.SearchResults {
-	res := types.SearchResults{
+func (s *searchResponse) ToSearchResults() upstream.SearchResponse {
+	res := upstream.SearchResponse{
 		Source:   types.SourceCurseForge,
-		Projects: make([]types.PackageName, 0, len(s.Data)),
+		Projects: make([]types.BarePackageName, 0, len(s.Data)),
 	}
 	for _, mod := range s.Data {
 		res.Projects = append(res.Projects, syntax.ToProjectName(mod.Slug))

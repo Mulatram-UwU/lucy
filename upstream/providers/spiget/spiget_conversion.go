@@ -10,6 +10,7 @@ import (
 
 	"github.com/mclucy/lucy/syntax"
 	"github.com/mclucy/lucy/types"
+	"github.com/mclucy/lucy/upstream"
 )
 
 const (
@@ -35,10 +36,10 @@ type resolvedVersion struct {
 	UUID        string
 }
 
-func (s searchResponse) ToSearchResults() types.SearchResults {
-	results := types.SearchResults{
+func (s searchResponse) ToSearchResults() upstream.SearchResponse {
+	results := upstream.SearchResponse{
 		Source:   types.SourceSpiget,
-		Projects: make([]types.PackageName, 0, len(s)),
+		Projects: make([]types.BarePackageName, 0, len(s)),
 	}
 
 	for _, resource := range s {
@@ -92,7 +93,7 @@ func (r resourceResponse) ToProjectInformation() types.Metadata {
 func (r resourceResponse) ToProjectSupport() types.PlatformSupport {
 	support := types.PlatformSupport{
 		MinecraftVersions: make([]types.BareVersion, 0, len(r.TestedVersions)),
-		Platforms:         make([]types.Platform, 0),
+		Platforms:         make([]types.PlatformId, 0),
 		Authentic:         false,
 	}
 
@@ -290,7 +291,7 @@ func prettifyLinkName(name string) string {
 	return strings.ToUpper(name[:1]) + name[1:]
 }
 
-func normalizedProjectName(name string) types.PackageName {
+func normalizedProjectName(name string) types.BarePackageName {
 	name = syntax.ToProjectName(name).String()
 	var b strings.Builder
 	b.Grow(len(name))
@@ -307,5 +308,5 @@ func normalizedProjectName(name string) types.PackageName {
 		}
 	}
 
-	return types.PackageName(strings.Trim(b.String(), "-"))
+	return types.BarePackageName(strings.Trim(b.String(), "-"))
 }

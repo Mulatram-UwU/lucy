@@ -13,17 +13,17 @@ type providerCandidateResolver struct {
 }
 
 func (resolver providerCandidateResolver) ResolvePackage(
-	id types.PackageId,
+	id types.VersionedPackageRef,
 ) (types.Package, error) {
-	attempts := []types.PackageId{id}
+	attempts := []types.VersionedPackageRef{id}
 	if id.Version == types.VersionCompatible {
 		attempts = append(
 			attempts,
-			types.PackageId{
+			types.VersionedPackageRef{
 				Platform: id.Platform, Name: id.Name,
 				Version: types.VersionLatest,
 			},
-			types.PackageId{
+			types.VersionedPackageRef{
 				Platform: id.Platform, Name: id.Name, Version: types.VersionAny,
 			},
 		)
@@ -83,7 +83,7 @@ func providersForSource(
 
 	filtered := make([]upstream.Provider, 0, 1)
 	for _, provider := range providers {
-		if provider.Source() == remote.Source {
+		if provider.Id() == remote.Source {
 			filtered = append(filtered, provider)
 		}
 	}

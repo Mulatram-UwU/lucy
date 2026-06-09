@@ -16,7 +16,7 @@ func showInstallComplete(path string) {
 	logger.ShowInfo(fmt.Sprintf("installed package to %s", path))
 }
 
-func showBatchPhase(header string, ids []types.PackageId) {
+func showBatchPhase(header string, ids []types.VersionedPackageRef) {
 	logger.ShowInfo(fmt.Sprintf("==> %s: %s", header, joinPackageNames(ids)))
 }
 
@@ -34,7 +34,7 @@ func showBatchSummary(installed int, failed int) {
 	}
 }
 
-func joinPackageNames(ids []types.PackageId) string {
+func joinPackageNames(ids []types.VersionedPackageRef) string {
 	if len(ids) == 0 {
 		return ""
 	}
@@ -51,7 +51,7 @@ func joinPackageNames(ids []types.PackageId) string {
 	return strings.Join(parts, ", ") + ", and " + ids[len(ids)-1].StringFull()
 }
 
-func showRecursiveResolveStart(roots []types.PackageId) {
+func showRecursiveResolveStart(roots []types.VersionedPackageRef) {
 	logger.ShowInfo(
 		fmt.Sprintf(
 			"resolving dependencies for %s",

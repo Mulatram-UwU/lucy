@@ -27,17 +27,17 @@ import (
 
 type provider struct{}
 
-func (s provider) Source() types.Source {
+func (s provider) Id() types.SourceId {
 	return types.SourceModrinth
 }
 
 var Provider provider
 
-// Search
+// SearchLegacy
 //
 // For Modrinth search API, see:
 // https://docs.modrinth.com/api/operations/searchprojects/
-func (s provider) Search(
+func (s provider) SearchLegacy(
 	query string,
 	options types.SearchOptions,
 ) (res upstream.RawSearchResults, err error) {
@@ -65,7 +65,7 @@ func (s provider) Search(
 		index:  modrinthSearchSortingString(options.SortBy),
 		facets: facets,
 	}
-	searchUrl := searchUrl(types.PackageName(query), internalOptions)
+	searchUrl := searchUrl(query, internalOptions)
 
 	// Make the call to Modrinth API
 	logger.Debug("searching via modrinth api: " + searchUrl)
@@ -90,7 +90,7 @@ func (s provider) Search(
 	return res, nil
 }
 
-func (s provider) Fetch(id types.PackageId) (
+func (s provider) Fetch(id types.VersionedPackageRef) (
 	remote upstream.RawPackageRemote,
 	err error,
 ) {
@@ -104,7 +104,7 @@ func (s provider) Fetch(id types.PackageId) (
 	return version, nil
 }
 
-func (s provider) Metadata(name types.PackageName) (
+func (s provider) Metadata(name types.BarePackageName) (
 	info upstream.RawProjectInformation,
 	err error,
 ) {
@@ -117,7 +117,7 @@ func (s provider) Metadata(name types.PackageName) (
 
 // Support from Modrinth API is extremely unreliable. A local check (if any
 // files were downloaded) is recommended.
-func (s provider) Support(name types.PackageName) (
+func (s provider) Support(name types.BarePackageName) (
 	supports upstream.RawProjectSupport,
 	err error,
 ) {
@@ -128,13 +128,13 @@ func (s provider) Support(name types.PackageName) (
 	return project, nil
 }
 
-var ErrInvalidAPIResponse = errors.New("invalid data from modrinth api")
+var ErrInvalidAPIResponse = errors.New("received non-200 code from modrinth api")
 
 // Temporary guard: Modrinth can ship non-JAR artifacts such as .mrpack,
 // but Lucy does not support installing them yet.
 var ErrUnsupportedFileType = errors.New("modrinth: only .jar files are supported")
 
-func (s provider) Dependencies(id types.PackageId) (
+func (s provider) Dependencies(id types.VersionedPackageRef) (
 	deps upstream.RawPackageDependencies,
 	err error,
 ) {
@@ -145,8 +145,8 @@ func (s provider) Dependencies(id types.PackageId) (
 	return &modrinthDependencies{version: version, platform: id.Platform}, nil
 }
 
-func (s provider) ParseAmbiguousId(p types.PackageId) (
-	parsed types.PackageId,
+func (s provider) ParseAmbiguousId(p types.VersionedPackageRef) (
+	parsed types.VersionedPackageRef,
 	err error,
 ) {
 	if p.Platform.IsSelector() {

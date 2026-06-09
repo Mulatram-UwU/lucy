@@ -25,7 +25,7 @@ func (n hangarProjectNamespace) ProjectRef() hangarProjectRef {
 	return hangarProjectRef{Owner: n.Owner, Slug: n.Slug}
 }
 
-func (r hangarProjectRef) CanonicalName() types.PackageName {
+func (r hangarProjectRef) CanonicalName() types.BarePackageName {
 	return syntax.ToProjectName(r.Slug)
 }
 
@@ -43,10 +43,10 @@ func (r hangarProjectRef) ProjectURL() string {
 	return hangarSiteBaseURL + "/" + r.Owner + "/" + r.Slug
 }
 
-func (s *projectSearchResponse) ToSearchResults() types.SearchResults {
-	res := types.SearchResults{
+func (s *projectSearchResponse) ToSearchResults() upstream.SearchResponse {
+	res := upstream.SearchResponse{
 		Source:   types.SourceHangar,
-		Projects: make([]types.PackageName, 0, len(s.Result)),
+		Projects: make([]types.BarePackageName, 0, len(s.Result)),
 	}
 
 	for _, project := range s.Result {
@@ -124,14 +124,14 @@ func (v *hangarVersion) ToPackageRemote() types.PackageRemote {
 			return types.PackageRemote{Source: types.SourceHangar}
 		}
 
-		remote, _ = v.ToPackageRemoteForPlatform(types.Platform(strings.ToLower(platforms[0])))
+		remote, _ = v.ToPackageRemoteForPlatform(types.PlatformId(strings.ToLower(platforms[0])))
 	}
 	return remote
 }
 
-func (v *hangarVersion) ToPackageRemoteForPlatform(platform types.Platform) (
-types.PackageRemote,
-bool,
+func (v *hangarVersion) ToPackageRemoteForPlatform(platform types.PlatformId) (
+	types.PackageRemote,
+	bool,
 ) {
 	download, ok := v.downloadForPlatform(platform)
 	if !ok {
@@ -152,13 +152,13 @@ bool,
 	return remote, true
 }
 
-func (v *hangarVersion) PluginDependencyNames() []types.PackageName {
+func (v *hangarVersion) PluginDependencyNames() []types.BarePackageName {
 	depsForPlatform := v.DependenciesForPlatform(types.PlatformNone)
 	if len(depsForPlatform) == 0 {
 		return nil
 	}
 
-	deps := make([]types.PackageName, 0, len(depsForPlatform))
+	deps := make([]types.BarePackageName, 0, len(depsForPlatform))
 	for _, dep := range depsForPlatform {
 		if dep.Name == "" || dep.ExternalURL != nil {
 			continue
@@ -169,7 +169,7 @@ func (v *hangarVersion) PluginDependencyNames() []types.PackageName {
 	return deps
 }
 
-func (v *hangarVersion) DependenciesForPlatform(platform types.Platform) []hangarPluginDependency {
+func (v *hangarVersion) DependenciesForPlatform(platform types.PlatformId) []hangarPluginDependency {
 	if len(v.PluginDependencies) == 0 {
 		return nil
 	}
@@ -188,7 +188,7 @@ func (v *hangarVersion) DependenciesForPlatform(platform types.Platform) []hanga
 	return nil
 }
 
-func (v *hangarVersion) HasDownloadForPlatform(platform types.Platform) bool {
+func (v *hangarVersion) HasDownloadForPlatform(platform types.PlatformId) bool {
 	_, ok := v.downloadForPlatform(preferredDownloadPlatform(platform))
 	if ok {
 		return true
@@ -196,7 +196,7 @@ func (v *hangarVersion) HasDownloadForPlatform(platform types.Platform) bool {
 	return len(v.Downloads) > 0 && platform == types.PlatformNone
 }
 
-func (v *hangarVersion) SupportsPlatform(platform types.Platform) bool {
+func (v *hangarVersion) SupportsPlatform(platform types.PlatformId) bool {
 	if len(v.PlatformDependencies) == 0 {
 		return false
 	}
@@ -209,9 +209,9 @@ func (v *hangarVersion) SupportsPlatform(platform types.Platform) bool {
 	return platform == types.PlatformNone && len(v.PlatformDependencies) > 0
 }
 
-func (v *hangarVersion) downloadForPlatform(platform types.Platform) (
-hangarDownload,
-bool,
+func (v *hangarVersion) downloadForPlatform(platform types.PlatformId) (
+	hangarDownload,
+	bool,
 ) {
 	if len(v.Downloads) == 0 {
 		return hangarDownload{}, false
@@ -237,7 +237,7 @@ func (d hangarDownload) URL() string {
 func platformSupportFromMap(platformVersions hangarPlatformVersionMap) types.PlatformSupport {
 	support := types.PlatformSupport{
 		MinecraftVersions: make([]types.BareVersion, 0),
-		Platforms:         make([]types.Platform, 0, len(platformVersions)),
+		Platforms:         make([]types.PlatformId, 0, len(platformVersions)),
 		Authentic:         true,
 	}
 
@@ -245,7 +245,7 @@ func platformSupportFromMap(platformVersions hangarPlatformVersionMap) types.Pla
 	for _, platformKey := range sortedMapKeys(platformVersions) {
 		support.Platforms = append(
 			support.Platforms,
-			types.Platform(strings.ToLower(platformKey)),
+			types.PlatformId(strings.ToLower(platformKey)),
 		)
 		for _, version := range platformVersions[platformKey] {
 			if _, exists := seenVersions[version]; exists {

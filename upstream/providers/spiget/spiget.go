@@ -13,11 +13,11 @@ type provider struct{}
 
 var Provider provider
 
-func (provider) Source() types.Source {
+func (provider) Id() types.SourceId {
 	return types.SourceSpiget
 }
 
-func (provider) Search(
+func (provider) SearchLegacy(
 	query string,
 	options types.SearchOptions,
 ) (res upstream.RawSearchResults, err error) {
@@ -32,7 +32,7 @@ func (provider) Search(
 	return resp, nil
 }
 
-func (p provider) Fetch(id types.PackageId) (
+func (p provider) Fetch(id types.VersionedPackageRef) (
 	remote upstream.RawPackageRemote,
 	err error,
 ) {
@@ -49,7 +49,7 @@ func (p provider) Fetch(id types.PackageId) (
 	return resolved, nil
 }
 
-func (p provider) Metadata(name types.PackageName) (
+func (p provider) Metadata(name types.BarePackageName) (
 	info upstream.RawProjectInformation,
 	err error,
 ) {
@@ -60,7 +60,7 @@ func (p provider) Metadata(name types.PackageName) (
 	return resource, nil
 }
 
-func (p provider) Support(name types.PackageName) (
+func (p provider) Support(name types.BarePackageName) (
 	supports upstream.RawProjectSupport,
 	err error,
 ) {
@@ -71,15 +71,15 @@ func (p provider) Support(name types.PackageName) (
 	return resource, nil
 }
 
-func (p provider) Dependencies(id types.PackageId) (
+func (p provider) Dependencies(id types.VersionedPackageRef) (
 	deps upstream.RawPackageDependencies,
 	err error,
 ) {
 	return nil, ErrNotImplemented
 }
 
-func (p provider) ParseAmbiguousId(id types.PackageId) (
-	parsed types.PackageId,
+func (p provider) ParseAmbiguousId(id types.VersionedPackageRef) (
+	parsed types.VersionedPackageRef,
 	err error,
 ) {
 	parsed = id

@@ -14,7 +14,7 @@ const (
 
 // modLoaderType maps lucy Platform to CurseForge ModLoaderType enum.
 // Docs: https://docs.curseforge.com/rest-api/#search-mods
-func modLoaderType(p types.Platform) int {
+func modLoaderType(p types.PlatformId) int {
 	switch p {
 	case types.PlatformForge:
 		return 1
@@ -56,7 +56,7 @@ func searchSortOrder(sort types.SearchSort) string {
 // searchUrl builds the search URL for the CurseForge /v1/mods/search endpoint.
 // Docs: https://docs.curseforge.com/rest-api/#search-mods
 func searchUrl(
-	query types.PackageName,
+	query types.BarePackageName,
 	options types.SearchOptions,
 ) string {
 	params := url.Values{}
@@ -79,7 +79,7 @@ func searchUrl(
 
 // slugSearchUrl builds a URL to find a mod by its exact slug.
 // Docs: https://docs.curseforge.com/rest-api/#search-mods
-func slugSearchUrl(slug types.PackageName) string {
+func slugSearchUrl(slug types.BarePackageName) string {
 	params := url.Values{}
 	params.Set("gameId", fmt.Sprintf("%d", minecraftGameId))
 	params.Set("classId", fmt.Sprintf("%d", modsClassId))

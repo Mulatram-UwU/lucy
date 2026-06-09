@@ -140,7 +140,10 @@ func TestRawProjectInformationToProjectInformation(t *testing.T) {
 	}.ToProjectInformation()
 
 	if info.Description != "# Title\n\n- Item one\n- Item two" {
-		t.Errorf("expected long description to be preserved, got '%s'", info.Description)
+		t.Errorf(
+			"expected long description to be preserved, got '%s'",
+			info.Description,
+		)
 	}
 	if !info.DescriptionIsMarkdown {
 		t.Error("expected markdown-looking long description to be recognized")
@@ -189,7 +192,10 @@ func TestFileResponseToPackageRemote_NilDownloadUrl(t *testing.T) {
 	remote := f.ToPackageRemote()
 
 	if remote.FileUrl != "" {
-		t.Errorf("expected empty FileUrl for nil downloadUrl, got '%s'", remote.FileUrl)
+		t.Errorf(
+			"expected empty FileUrl for nil downloadUrl, got '%s'",
+			remote.FileUrl,
+		)
 	}
 	if remote.Hash != "abc123sha1" {
 		t.Errorf("expected hash 'abc123sha1', got '%s'", remote.Hash)
@@ -230,13 +236,16 @@ func TestFileResponseToPackageRemote_NoHashes(t *testing.T) {
 		t.Errorf("expected empty hash, got '%s'", remote.Hash)
 	}
 	if remote.HashAlgorithm != "" {
-		t.Errorf("expected empty hash algorithm, got '%s'", remote.HashAlgorithm)
+		t.Errorf(
+			"expected empty hash algorithm, got '%s'",
+			remote.HashAlgorithm,
+		)
 	}
 }
 
 func TestModLoaderType(t *testing.T) {
 	tests := []struct {
-		platform types.Platform
+		platform types.PlatformId
 		expected int
 	}{
 		{types.PlatformForge, 1},
@@ -249,8 +258,10 @@ func TestModLoaderType(t *testing.T) {
 	for _, tt := range tests {
 		got := modLoaderType(tt.platform)
 		if got != tt.expected {
-			t.Errorf("modLoaderType(%s) = %d, want %d",
-				tt.platform, got, tt.expected)
+			t.Errorf(
+				"modLoaderType(%s) = %d, want %d",
+				tt.platform, got, tt.expected,
+			)
 		}
 	}
 }
@@ -269,8 +280,10 @@ func TestCurseforgeSearchSortField(t *testing.T) {
 	for _, tt := range tests {
 		got := curseforgeSearchSortField(tt.sort)
 		if got != tt.expected {
-			t.Errorf("curseforgeSearchSortField(%s) = %d, want %d",
-				tt.sort, got, tt.expected)
+			t.Errorf(
+				"curseforgeSearchSortField(%s) = %d, want %d",
+				tt.sort, got, tt.expected,
+			)
 		}
 	}
 }
@@ -324,7 +337,10 @@ func TestSearchUrl_NoLoaderForPlatformAny(t *testing.T) {
 	u := searchUrl("test", options)
 
 	if containsSubstring(u, "modLoaderType") {
-		t.Errorf("searchUrl should not include modLoaderType for PlatformAny: %s", u)
+		t.Errorf(
+			"searchUrl should not include modLoaderType for PlatformAny: %s",
+			u,
+		)
 	}
 }
 

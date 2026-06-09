@@ -369,7 +369,7 @@ func TestBuildTakeoverPackageClassificationsSurfacesNonLeafDependencies(t *testi
 			types.SourceModrinth,
 			[]types.Dependency{
 				{
-					Id: types.PackageId{
+					Id: types.VersionedPackageRef{
 						Platform: types.PlatformFabric, Name: "fabric-api",
 						Version: types.VersionAny,
 					}, Mandatory: true,
@@ -381,7 +381,7 @@ func TestBuildTakeoverPackageClassificationsSurfacesNonLeafDependencies(t *testi
 			types.SourceModrinth,
 			[]types.Dependency{
 				{
-					Id: types.PackageId{
+					Id: types.VersionedPackageRef{
 						Platform: types.PlatformFabric, Name: "cloth-config",
 						Version: types.VersionAny,
 					}, Mandatory: true,
@@ -525,7 +525,7 @@ func TestBuildPackageClassificationDescriptionDistinguishesNonLeafNodes(t *testi
 
 func testObservedPackage(
 	id string,
-	source types.Source,
+	source types.SourceId,
 	deps []types.Dependency,
 ) types.Package {
 	pkgID, err := syntax.Parse(id)
