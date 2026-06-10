@@ -14,3 +14,8 @@ type VersionedPackageRef struct {
 	Name     BarePackageName
 	Version  BareVersion
 }
+
+type StringablePackageRef interface {
+	StringFull() string
+	StringBase() string
+}

@@ -245,7 +245,7 @@ func buildUpdatedLock(
 		locked := lockedPackageFromInstalled(
 			workDir,
 			pkg,
-			result.Provenance[pkg.Id.StringPlatformName()],
+			result.Provenance[pkg.Id.StringBase()],
 		)
 		packagesByID[locked.ID] = locked
 	}
@@ -367,7 +367,7 @@ func lockedPackageFromInstalled(
 	}
 
 	return state.LockedPackage{
-		ID:            pkg.Id.StringPlatformName(),
+		ID:            pkg.Id.StringBase(),
 		Version:       pkg.Id.Version.String(),
 		Source:        source,
 		URL:           url,

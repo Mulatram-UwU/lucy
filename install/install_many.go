@@ -212,7 +212,7 @@ func prepareBatchIDs(ids []types.VersionedPackageRef) []types.VersionedPackageRe
 			id.NormalizeIdentityPackage()
 		}
 
-		key := id.StringPlatformName()
+		key := id.StringBase()
 		if _, ok := seen[key]; ok {
 			continue
 		}

@@ -748,7 +748,7 @@ func resolveManifestPackageID(
 		id.NormalizeIdentityPackage()
 	}
 	if id.Platform != types.PlatformAny && id.Platform != types.PlatformUnknown {
-		return id.StringPlatformName()
+		return id.StringBase()
 	}
 
 	if manifest != nil {
@@ -771,7 +771,7 @@ func resolveManifestPackageID(
 		}
 	}
 
-	return id.StringPlatformName()
+	return id.StringBase()
 }
 
 func manifestPackageIDs(packages []ManifestPackage) []string {
