@@ -61,6 +61,11 @@ type ArtifactMapperProvider struct {
 	Mapper upstream.ArtifactMapper
 }
 
+type VersionSelectorProvider struct {
+	Source   types.SourceId
+	Resolver upstream.VersionSelectorResolver
+}
+
 var searcherBySource = map[types.SourceId]upstream.Searcher{
 	types.SourceModrinth:   modrinth.Provider,
 	types.SourceCurseForge: curseforge2.Provider,
@@ -82,6 +87,15 @@ var informerBySource = map[types.SourceId]upstream.Informer{
 var artifactMapperBySource = map[types.SourceId]upstream.ArtifactMapper{
 	types.SourceModrinth:   modrinth.Provider,
 	types.SourceCurseForge: curseforge2.Provider,
+}
+
+var versionSelectorResolverBySource = map[types.SourceId]upstream.VersionSelectorResolver{
+	types.SourceModrinth:   modrinth.Provider,
+	types.SourceCurseForge: curseforge2.Provider,
+	types.SourceGitHub:     githubsource.Provider,
+	types.SourceMCDR:       mcdr.Provider,
+	types.SourceHangar:     hangar.Provider,
+	types.SourceSpiget:     spiget.Provider,
 }
 
 func listModProviders() []upstream.Provider {
@@ -154,6 +168,20 @@ func GetArtifactMapper(src types.SourceId) (ArtifactMapperProvider, bool, error)
 		return ArtifactMapperProvider{}, false, nil
 	}
 	return ArtifactMapperProvider{Source: src, Mapper: mapper}, true, nil
+}
+
+func GetVersionSelectorResolver(src types.SourceId) (VersionSelectorProvider, bool, error) {
+	if src == types.SourceCurseForge {
+		if err := curseforge2.AvailabilityError(); err != nil {
+			return VersionSelectorProvider{}, false, err
+		}
+	}
+
+	resolver, ok := versionSelectorResolverBySource[src]
+	if !ok {
+		return VersionSelectorProvider{}, false, nil
+	}
+	return VersionSelectorProvider{Source: src, Resolver: resolver}, true, nil
 }
 
 // ResolveProviders resolves ordered provider candidates for a given operation,

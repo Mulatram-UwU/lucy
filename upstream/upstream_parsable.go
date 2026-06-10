@@ -40,4 +40,9 @@ type ResolvedArtifact struct {
 	HashAlgorithm string
 }
 
-type VersionSelectorResolver interface{}
+type VersionSelectorResolver interface {
+	ResolveVersionSelector(ref types.VersionedPackageRef) (
+		resolved types.VersionedPackageRef,
+		err error,
+	)
+}
