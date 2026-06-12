@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/mclucy/lucy/install"
 	"gopkg.in/yaml.v3"
 
 	"github.com/mclucy/lucy/types"
@@ -274,7 +275,7 @@ func ValidateManifestEnvironment(env ManifestEnvironment) error {
 // validateManifestPlatform remains as a legacy helper for the pre-Task-2 lock
 // schema, which still validates a single platform field.
 func validateManifestPlatform(value string) error {
-	platform := types.Platform(strings.TrimSpace(value))
+	platform := types.PlatformId(strings.TrimSpace(value))
 	if platform == "" {
 		return fmt.Errorf("environment.platform is required")
 	}
@@ -298,7 +299,7 @@ func validateManifestPackage(pkg ManifestPackage) error {
 	if len(parts) != 2 || strings.TrimSpace(parts[0]) == "" || strings.TrimSpace(parts[1]) == "" {
 		return fmt.Errorf("id must use platform/name format")
 	}
-	platform := types.Platform(parts[0])
+	platform := types.PlatformId(parts[0])
 	if !platform.Valid() || platform == types.PlatformAny || platform == types.PlatformMinecraft || platform == types.PlatformUnknown {
 		return fmt.Errorf("invalid package platform %q", parts[0])
 	}
@@ -358,7 +359,7 @@ func NormalizeManifestVersionIntent(version types.BareVersion) string {
 
 func UpsertManifestRequiredIntent(
 	manifest *Manifest,
-	req types.PackageRequest,
+	req install.PackageRequest,
 	source string,
 ) *Manifest {
 	if manifest == nil {
@@ -487,7 +488,7 @@ func ManifestPackagesFromClassified(classified []ClassifiedPackage) []ManifestPa
 
 func UpdateManifestRolesForAdd(
 	manifest *Manifest,
-	requested []types.PackageRequest,
+	requested []install.PackageRequest,
 	lock *Lock,
 ) *Manifest {
 	base := cloneManifestOrDefaults(manifest)
@@ -496,7 +497,7 @@ func UpdateManifestRolesForAdd(
 
 	for _, req := range requested {
 		// TODO: migrate resolveManifestPackageID to accept PackageRef directly
-		pid := types.PackageId{
+		pid := types.VersionedPackageRef{
 			Platform: req.Ref.Platform,
 			Name:     req.Ref.Name,
 		}
@@ -529,7 +530,7 @@ func UpdateManifestRolesForAdd(
 
 func UpdateManifestRolesForRemove(
 	manifest *Manifest,
-	removed []types.PackageId,
+	removed []types.VersionedPackageRef,
 	lock *Lock,
 ) *Manifest {
 	base := cloneManifestOrDefaults(manifest)
@@ -696,7 +697,10 @@ func normalizeProvenanceStep(step string) string {
 	return trimmed
 }
 
-func requestedManifestVersion(version types.BareVersion, fallback string) string {
+func requestedManifestVersion(
+	version types.BareVersion,
+	fallback string,
+) string {
 	if version == types.VersionAny {
 		if strings.TrimSpace(fallback) != "" {
 			return fallback
@@ -736,7 +740,7 @@ func defaultManifestPackageForID(id string) ManifestPackage {
 }
 
 func resolveManifestPackageID(
-	id types.PackageId,
+	id types.VersionedPackageRef,
 	manifest *Manifest,
 	lock *Lock,
 ) string {
@@ -744,7 +748,7 @@ func resolveManifestPackageID(
 		id.NormalizeIdentityPackage()
 	}
 	if id.Platform != types.PlatformAny && id.Platform != types.PlatformUnknown {
-		return id.StringPlatformName()
+		return id.StringBase()
 	}
 
 	if manifest != nil {
@@ -767,7 +771,7 @@ func resolveManifestPackageID(
 		}
 	}
 
-	return id.StringPlatformName()
+	return id.StringBase()
 }
 
 func manifestPackageIDs(packages []ManifestPackage) []string {
@@ -778,7 +782,7 @@ func manifestPackageIDs(packages []ManifestPackage) []string {
 	return ids
 }
 
-func resolveIDByName(name types.PackageName, ids []string) string {
+func resolveIDByName(name types.BarePackageName, ids []string) string {
 	var match string
 	for _, id := range ids {
 		parts := strings.Split(id, "/")

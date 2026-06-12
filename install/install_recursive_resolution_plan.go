@@ -11,19 +11,25 @@ import (
 // resolution pass: which roots to solve, which fixed constraints to respect,
 // and which advisory candidates must be pruned before verification.
 type recursiveResolutionPlan struct {
-	Roots                []types.PackageId
+	Roots                []types.VersionedPackageRef
 	InstalledConstraints []InstalledConstraint
 	ExcludedCandidates   map[string]struct{}
 }
 
 func newRecursiveResolutionPlan(
-	roots []types.PackageId,
+	roots []types.VersionedPackageRef,
 	installedConstraints []InstalledConstraint,
 ) recursiveResolutionPlan {
 	return recursiveResolutionPlan{
-		Roots:                append([]types.PackageId(nil), roots...),
-		InstalledConstraints: append([]InstalledConstraint(nil), installedConstraints...),
-		ExcludedCandidates:   map[string]struct{}{},
+		Roots: append(
+			[]types.VersionedPackageRef(nil),
+			roots...,
+		),
+		InstalledConstraints: append(
+			[]InstalledConstraint(nil),
+			installedConstraints...,
+		),
+		ExcludedCandidates: map[string]struct{}{},
 	}
 }
 
@@ -58,23 +64,26 @@ func summarizeReconcileDiff(diff ReconcileDiff) string {
 	return strings.Join(parts, ", ")
 }
 
-func excludedCandidateKeys(ids []types.PackageId) map[string]struct{} {
+func excludedCandidateKeys(ids []types.VersionedPackageRef) map[string]struct{} {
 	excluded := make(map[string]struct{}, len(ids))
 	for _, id := range ids {
-		excluded[id.StringPlatformName()] = struct{}{}
+		excluded[id.StringBase()] = struct{}{}
 	}
 	return excluded
 }
 
-func appendMissingRoots(existing []types.PackageId, missing []types.PackageId) []types.PackageId {
+func appendMissingRoots(
+	existing []types.VersionedPackageRef,
+	missing []types.VersionedPackageRef,
+) []types.VersionedPackageRef {
 	if len(missing) == 0 {
-		return append([]types.PackageId(nil), existing...)
+		return append([]types.VersionedPackageRef(nil), existing...)
 	}
 
 	seen := make(map[string]struct{}, len(existing)+len(missing))
-	updated := make([]types.PackageId, 0, len(existing)+len(missing))
+	updated := make([]types.VersionedPackageRef, 0, len(existing)+len(missing))
 	for _, id := range existing {
-		key := id.StringPlatformName()
+		key := id.StringBase()
 		if _, ok := seen[key]; ok {
 			continue
 		}
@@ -82,7 +91,7 @@ func appendMissingRoots(existing []types.PackageId, missing []types.PackageId) [
 		updated = append(updated, id)
 	}
 	for _, id := range missing {
-		key := id.StringPlatformName()
+		key := id.StringBase()
 		if _, ok := seen[key]; ok {
 			continue
 		}
@@ -115,11 +124,14 @@ func mergeReconcileConstraints(groups ...[]InstalledConstraint) []InstalledConst
 func tightenedConstraintInputs(inputs []ConstraintInput) []InstalledConstraint {
 	constraints := make([]InstalledConstraint, 0, len(inputs))
 	for _, input := range inputs {
-		constraints = append(constraints, InstalledConstraint{ConstraintInput: input})
+		constraints = append(
+			constraints,
+			InstalledConstraint{ConstraintInput: input},
+		)
 	}
 	return constraints
 }
 
 func reconcileConstraintInputKey(input ConstraintInput) string {
-	return input.Requester + "|" + input.Dependency.Id.StringPlatformName()
+	return input.Requester + "|" + input.Dependency.Id.StringBase()
 }

@@ -176,7 +176,7 @@ func applyObservedDefaults(
 		} else if defaults.Platform != "" {
 			if version := discoverObservedLoaderVersion(
 				workDir,
-				types.Platform(defaults.Platform),
+				types.PlatformId(defaults.Platform),
 			); version != "" {
 				defaults.PlatformVersion = version
 				defaults.Confidence = maxConfidence(
@@ -209,25 +209,25 @@ func packageCandidatesFromObserved(packages []types.Package) []string {
 		if pkg.Id.Platform == types.PlatformAny || pkg.Id.Platform == types.PlatformUnknown || strings.TrimSpace(pkg.Id.Name.String()) == "" {
 			continue
 		}
-		candidates = append(candidates, pkg.Id.StringPlatformName())
+		candidates = append(candidates, pkg.Id.StringBase())
 	}
 	sort.Strings(candidates)
 	return uniqueStrings(candidates)
 }
 
 func runtimeIdentityPackage(platform string) string {
-	p := types.Platform(strings.TrimSpace(platform))
+	p := types.PlatformId(strings.TrimSpace(platform))
 	if p == types.PlatformNone || !p.Valid() {
 		return ""
 	}
-	return types.PackageId{
-		Platform: p, Name: types.PackageName(p.String()),
-	}.StringPlatformName()
+	return types.VersionedPackageRef{
+		Platform: p, Name: types.BarePackageName(p.String()),
+	}.StringBase()
 }
 
 func discoverObservedLoaderVersion(
 	workDir string,
-	platform types.Platform,
+	platform types.PlatformId,
 ) string {
 	entries, err := os.ReadDir(workDir)
 	if err != nil {
@@ -369,7 +369,7 @@ func discoverPlatform(workDir string) (string, string, DiscoveryConfidence) {
 	return "", "", ConfidenceNone
 }
 
-func discoverLoaderVersion(path string, platform types.Platform) string {
+func discoverLoaderVersion(path string, platform types.PlatformId) string {
 	reader, err := zip.OpenReader(path)
 	if err != nil {
 		return ""
@@ -474,10 +474,10 @@ func detectArchivePackages(path string) []string {
 		) == nil && strings.TrimSpace(mod.Id) != "" {
 			packages = append(
 				packages,
-				types.PackageId{
+				types.VersionedPackageRef{
 					Platform: types.PlatformFabric,
-					Name:     types.PackageName(strings.TrimSpace(mod.Id)),
-				}.StringPlatformName(),
+					Name:     types.BarePackageName(strings.TrimSpace(mod.Id)),
+				}.StringBase(),
 			)
 		}
 	}
@@ -494,10 +494,10 @@ func detectArchivePackages(path string) []string {
 				}
 				packages = append(
 					packages,
-					types.PackageId{
+					types.VersionedPackageRef{
 						Platform: types.PlatformNeoforge,
-						Name:     types.PackageName(strings.TrimSpace(item.ModID)),
-					}.StringPlatformName(),
+						Name:     types.BarePackageName(strings.TrimSpace(item.ModID)),
+					}.StringBase(),
 				)
 			}
 		}
@@ -515,10 +515,10 @@ func detectArchivePackages(path string) []string {
 				}
 				packages = append(
 					packages,
-					types.PackageId{
+					types.VersionedPackageRef{
 						Platform: types.PlatformForge,
-						Name:     types.PackageName(strings.TrimSpace(item.ModID)),
-					}.StringPlatformName(),
+						Name:     types.BarePackageName(strings.TrimSpace(item.ModID)),
+					}.StringBase(),
 				)
 			}
 		}
@@ -533,10 +533,10 @@ func detectArchivePackages(path string) []string {
 				}
 				packages = append(
 					packages,
-					types.PackageId{
+					types.VersionedPackageRef{
 						Platform: types.PlatformForge,
-						Name:     types.PackageName(strings.TrimSpace(item.ModId)),
-					}.StringPlatformName(),
+						Name:     types.BarePackageName(strings.TrimSpace(item.ModId)),
+					}.StringBase(),
 				)
 			}
 		}
@@ -553,10 +553,10 @@ func detectArchivePackages(path string) []string {
 		) == nil && strings.TrimSpace(plugin.Id) != "" {
 			packages = append(
 				packages,
-				types.PackageId{
+				types.VersionedPackageRef{
 					Platform: types.PlatformMCDR,
-					Name:     types.PackageName(strings.TrimSpace(plugin.Id)),
-				}.StringPlatformName(),
+					Name:     types.BarePackageName(strings.TrimSpace(plugin.Id)),
+				}.StringBase(),
 			)
 		}
 	}
@@ -565,9 +565,10 @@ func detectArchivePackages(path string) []string {
 		if id := parsePluginYAMLName(pluginMeta); id != "" {
 			packages = append(
 				packages,
-				types.PackageId{
-					Platform: types.PlatformNone, Name: types.PackageName(id),
-				}.StringPlatformName(),
+				types.VersionedPackageRef{
+					Platform: types.PlatformNone,
+					Name:     types.BarePackageName(id),
+				}.StringBase(),
 			)
 		}
 	}
@@ -578,9 +579,10 @@ func detectArchivePackages(path string) []string {
 		if id := parsePluginYAMLName(paperMeta); id != "" {
 			packages = append(
 				packages,
-				types.PackageId{
-					Platform: types.PlatformNone, Name: types.PackageName(id),
-				}.StringPlatformName(),
+				types.VersionedPackageRef{
+					Platform: types.PlatformNone,
+					Name:     types.BarePackageName(id),
+				}.StringBase(),
 			)
 		}
 	}

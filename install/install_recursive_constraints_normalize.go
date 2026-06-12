@@ -61,7 +61,7 @@ func normalizeConstraintExpression(dep types.Dependency) (
 		return nil, fmt.Errorf(
 			"install: failed to parse fixed constraint version %q for %s: %w",
 			dep.Id.Version,
-			dep.Id.StringPlatformName(),
+			dep.Id.StringBase(),
 			err,
 		)
 	}
@@ -69,7 +69,7 @@ func normalizeConstraintExpression(dep types.Dependency) (
 		return nil, fmt.Errorf(
 			"install: failed to parse fixed constraint version %q for %s",
 			dep.Id.Version,
-			dep.Id.StringPlatformName(),
+			dep.Id.StringBase(),
 		)
 	}
 	return types.VersionExpr{
@@ -82,7 +82,7 @@ func normalizeConstraintExpression(dep types.Dependency) (
 	}, nil
 }
 
-func defaultVersionScheme(id types.PackageId) types.VersionScheme {
+func defaultVersionScheme(id types.VersionedPackageRef) types.VersionScheme {
 	switch id.Platform {
 	case types.PlatformMinecraft:
 		return types.MinecraftRelease

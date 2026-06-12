@@ -10,7 +10,7 @@ type ConstraintGraph map[string]ConstraintRequirement
 // Constraint contains the merged DNF expression, and Provenance preserves the
 // requester that contributed each atomic clause.
 type ConstraintRequirement struct {
-	Id         types.PackageId
+	Id         types.VersionedPackageRef
 	Constraint types.VersionExpr
 	Provenance []ConstraintProvenance
 
@@ -46,10 +46,12 @@ func MergeConstraintGraph(inputs []ConstraintInput) (ConstraintGraph, error) {
 
 	for _, input := range inputs {
 		id := input.Dependency.Id
-		key := id.StringPlatformName()
+		key := id.StringBase()
 		entry := graph[key]
 		if entry.Id.Name == "" {
-			entry.Id = types.PackageId{Platform: id.Platform, Name: id.Name}
+			entry.Id = types.VersionedPackageRef{
+				Platform: id.Platform, Name: id.Name,
+			}
 			entry.variants = []constraintVariant{{}}
 		}
 
@@ -78,10 +80,10 @@ func MergeConstraintGraph(inputs []ConstraintInput) (ConstraintGraph, error) {
 
 // IsSatisfied reports whether the merged requirement for id accepts version.
 func (g ConstraintGraph) IsSatisfied(
-	id types.PackageId,
+	id types.VersionedPackageRef,
 	version types.ResolvableVersion,
 ) bool {
-	entry, ok := g[id.StringPlatformName()]
+	entry, ok := g[id.StringBase()]
 	if !ok {
 		return false
 	}
@@ -92,7 +94,7 @@ func (g ConstraintGraph) IsSatisfied(
 }
 
 func mergeRequirementVariants(
-	id types.PackageId,
+	id types.VersionedPackageRef,
 	left []constraintVariant,
 	right []constraintVariant,
 ) ([]constraintVariant, error) {
@@ -154,7 +156,7 @@ func compareConstraintVersions(
 }
 
 func conjunctionSatisfiable(
-	id types.PackageId,
+	id types.VersionedPackageRef,
 	clauses []ConstraintProvenance,
 ) (bool, *ConstraintConflictError) {
 	var eq *ConstraintProvenance
@@ -294,7 +296,7 @@ func strongerUpper(
 }
 
 func conflictFor(
-	id types.PackageId,
+	id types.VersionedPackageRef,
 	left, right ConstraintProvenance,
 ) *ConstraintConflictError {
 	return &ConstraintConflictError{

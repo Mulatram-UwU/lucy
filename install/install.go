@@ -15,25 +15,27 @@ type Result struct {
 	Provenance map[string][]string
 }
 
-var installers = map[types.Platform]platformInstaller{}
+var installers = map[types.PlatformId]platformInstaller{}
 
-func registerInstaller(platform types.Platform, installer platformInstaller) {
+func registerInstaller(platform types.PlatformId, installer platformInstaller) {
 	if installer == nil {
 		panic("install: nil installer")
 	}
 	installers[platform] = installer
 }
 
-func Install(req types.PackageRequest, options Options) (*Result, error) {
+func Install(req PackageRequest, options Options) (*Result, error) {
 	// TODO(package-ref-migration): remove PackageId/source extraction once identity installers accept PackageRequest.
-	id := types.PackageId{Platform: req.Ref.Platform, Name: req.Ref.Name, Version: req.Version}
+	id := types.VersionedPackageRef{
+		Platform: req.Ref.Platform, Name: req.Ref.Name, Version: req.Version,
+	}
 	source := req.Source
 	_ = source
 
 	// for regular (non-identity) packages, delegate to InstallMany to unify
 	// resolver behavior with batch adds
 	if !id.IsIdentityPackage() {
-		return InstallMany([]types.PackageRequest{req}, options)
+		return InstallMany([]PackageRequest{req}, options)
 	}
 
 	// identity packages go through the established platform installer
@@ -48,7 +50,7 @@ func Install(req types.PackageRequest, options Options) (*Result, error) {
 	return &Result{}, nil
 }
 
-func installPlatform(id types.PackageId) error {
+func installPlatform(id types.VersionedPackageRef) error {
 	id.NormalizeIdentityPackage()
 	err := id.IsValidIdentityPackage()
 	if err != nil {

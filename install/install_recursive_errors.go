@@ -16,7 +16,7 @@ type ConstraintConflictSource struct {
 // ConstraintConflictError reports that merged requirements for one package
 // identity have no satisfiable intersection.
 type ConstraintConflictError struct {
-	PackageId types.PackageId
+	PackageId types.VersionedPackageRef
 	Left      ConstraintConflictSource
 	Right     ConstraintConflictSource
 }
@@ -27,7 +27,7 @@ func (e *ConstraintConflictError) Error() string {
 	}
 	return fmt.Sprintf(
 		"install: constraint conflict for %s between %q (%s) and %q (%s)",
-		e.PackageId.StringPlatformName(),
+		e.PackageId.StringBase(),
 		e.Left.Requester,
 		formatVersionConstraint(e.Left.Constraint),
 		e.Right.Requester,

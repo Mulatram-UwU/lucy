@@ -38,7 +38,7 @@ func BuildRecursiveApplyPlan(tx *RecursiveTransaction) (ApplyPlan, error) {
 	}
 
 	candidateByName := make(
-		map[types.PackageName]CandidateNode,
+		map[types.BarePackageName]CandidateNode,
 		len(tx.CandidateGraph),
 	)
 	for _, node := range tx.CandidateGraph {
@@ -75,7 +75,7 @@ func BuildRecursiveApplyPlan(tx *RecursiveTransaction) (ApplyPlan, error) {
 
 	remove := make([]types.Package, 0)
 	for _, extraId := range tx.ReconcileDiff.Extra {
-		key := extraId.StringPlatformName()
+		key := extraId.StringBase()
 		node, ok := tx.CandidateGraph[key]
 		if !ok {
 			continue
